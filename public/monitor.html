@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitor</title>
+</head>
+<body>
+  <h2>Monitor</h2>
+
+  <input id="sessionInput" placeholder="sessionId (ej: ab12cd)" />
+  <button id="joinBtn">Join</button>
+
+  <p>Joined: <span id="joined">-</span></p>
+
+  <h3>Estado</h3>
+  <pre id="stateBox">{}</pre>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="monitor.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Walker</title>
+</head>
+<body>
+  <h2>Walker</h2>
+
+  <button id="startBtn">Start (1 toque)</button>
+  <button id="stopBtn" disabled>Stop</button>
+
+  <p>Session: <span id="sessionId">-</span></p>
+  <p>Status: <span id="status">idle</span></p>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="walker.js"></script>
+</body>
+</html>
