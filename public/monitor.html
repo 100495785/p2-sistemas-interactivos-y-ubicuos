@@ -2,19 +2,47 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UbiNav Monitor</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <h2>Monitor</h2>
+<body class="monitor-screen">
+  <main class="card">
+    <h2>Monitor</h2>
+    <p class="subtitle">Acompanamiento remoto en tiempo real.</p>
 
-  <input id="sessionInput" placeholder="sessionId (ej: ab12cd)" />
-  <button id="joinBtn">Join</button>
+    <div class="session-row">
+      <input id="sessionInput" placeholder="sessionId (ej: ab12cd)" />
+      <button id="joinBtn" class="btn">Join</button>
+    </div>
 
-  <p>Joined: <span id="joined">-</span></p>
+    <p><strong>Sesion activa:</strong> <span id="joined">-</span></p>
+    <p><strong>Presencia:</strong> <span id="presence">-</span></p>
 
-  <h3>Estado</h3>
-  <pre id="stateBox">{}</pre>
+    <section class="panel">
+      <h3>Comandos remotos</h3>
+      <div class="command-grid">
+        <button class="btn small" data-cmd="nav:next">Siguiente</button>
+        <button class="btn small" data-cmd="nav:repeat">Repetir</button>
+        <button class="btn small" data-cmd="nav:pause">Pausar</button>
+        <button class="btn small" data-cmd="nav:resume">Reanudar</button>
+        <button class="btn small" data-cmd="nav:set-turn" data-turn="left">Forzar izquierda</button>
+        <button class="btn small" data-cmd="nav:set-turn" data-turn="right">Forzar derecha</button>
+        <button class="btn small warning" data-cmd="exit:request">Pedir salida</button>
+        <button class="btn small danger" data-cmd="exit:confirm">Confirmar salida</button>
+      </div>
+    </section>
 
+    <section class="panel">
+      <h3>Estado recibido</h3>
+      <pre id="stateBox" class="log">{}</pre>
+    </section>
+
+    <section class="panel">
+      <h3>Eventos</h3>
+      <pre id="eventLog" class="log"></pre>
+    </section>
+  </main>
   <script src="/socket.io/socket.io.js"></script>
   <script src="monitor.js"></script>
 </body>

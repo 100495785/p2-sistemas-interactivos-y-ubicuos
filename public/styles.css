@@ -1,0 +1,161 @@
+:root {
+  --bg-a: #0c1d2d;
+  --bg-b: #173f5f;
+  --panel: #f7f5ef;
+  --ink: #13222f;
+  --accent: #f07f22;
+  --accent-dark: #c96312;
+  --ok: #0a8a5b;
+  --warn: #be7a10;
+  --danger: #b33f2f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  color: var(--panel);
+  background: linear-gradient(130deg, var(--bg-a), var(--bg-b));
+  padding: 1.2rem;
+}
+
+.card {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  background: color-mix(in srgb, var(--bg-a) 40%, black);
+  border: 1px solid color-mix(in srgb, var(--panel) 22%, transparent);
+  border-radius: 16px;
+  padding: 1.2rem;
+  backdrop-filter: blur(3px);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  margin-top: 0;
+  opacity: 0.9;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.8rem 0 1rem;
+}
+
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.btn:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.btn.secondary {
+  background: #2f98c2;
+}
+
+.btn.warning {
+  background: var(--warn);
+}
+
+.btn.danger {
+  background: var(--danger);
+}
+
+.btn.small {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.8rem;
+}
+
+.panel {
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.hint {
+  font-size: 0.95rem;
+  opacity: 0.88;
+}
+
+.session-row {
+  display: flex;
+  gap: 0.6rem;
+}
+
+input {
+  flex: 1;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #31526b;
+}
+
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.45rem;
+}
+
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.menu-list li {
+  padding: 0.5rem 0.6rem;
+  background: #e7eef2;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.menu-list li.active {
+  background: #1c5f85;
+  color: #fff;
+}
+
+.log {
+  margin: 0;
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.88rem;
+  background: #e7eef2;
+  color: #16212b;
+  border-radius: 8px;
+  padding: 0.55rem;
+}
