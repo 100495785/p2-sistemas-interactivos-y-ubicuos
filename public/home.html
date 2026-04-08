@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>HapticNav — Selección de rol</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    /* Layout específico para la pantalla inicial */
+
+    .home-container {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .home-box {
+      width: 100%;
+      max-width: 420px;
+
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+
+      padding: 40px 30px;
+
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+
+      animation: fadeUp .4s ease;
+    }
+
+    .home-title {
+      font-family: var(--font-disp);
+      font-size: 1.9rem;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-align: center;
+      color: var(--amber);
+      text-shadow: 0 0 20px rgba(245,166,35,.4);
+    }
+
+    .home-sub {
+      text-align: center;
+      color: var(--text-dim);
+      letter-spacing: .1em;
+      font-size: .8rem;
+      text-transform: uppercase;
+    }
+
+    .role-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .role-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+
+      color: var(--text);
+
+      font-family: var(--font-disp);
+      font-weight: 700;
+      font-size: .9rem;
+      letter-spacing: .12em;
+
+      padding: 16px;
+
+      cursor: pointer;
+
+      transition: all .18s;
+      text-transform: uppercase;
+    }
+
+    .role-btn:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+      box-shadow: 0 0 18px rgba(245,166,35,.4);
+    }
+
+    .role-btn:active {
+      transform: scale(.97);
+    }
+
+    .role-icon {
+      font-size: 1.6rem;
+      margin-right: 8px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="home-container">
+
+  <div class="home-box">
+
+    <div class="logo-mark">
+      🧭
+    </div>
+
+    <div class="home-title">
+      HAPTICNAV
+    </div>
+
+    <div class="home-sub">
+      Selecciona tu rol en el sistema
+    </div>
+
+    <div class="role-buttons">
+
+      <button class="role-btn" onclick="goNavigator()">
+        📍 Usuario principal
+      </button>
+
+      <button class="role-btn" onclick="goCompanion()">
+        👁 Acompañante
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+function goNavigator() {
+  window.location.href = "/index.html";
+}
+
+function goCompanion() {
+  window.location.href = "/companion.html";
+}
+
+</script>
+
+</body>
+</html>

@@ -1,28 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UbiNav P2</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>HapticNav — Navegador</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+<body class="navigator-page">
 
-<body class="landing">
-  <main class="card">
-    <h1>UbiNav</h1>
-    <p class="subtitle">Prototipo P2 de interaccion ubicua (walker + monitor).</p>
+  <!-- SETUP OVERLAY -->
+  <div id="setup-overlay" class="overlay active">
+    <div class="overlay-box">
+      <div class="logo-mark">◈</div>
+      <h1 class="brand">HAPTICNAV</h1>
+      <p class="brand-sub">Navegación sin mirar</p>
 
-    <div class="actions">
-      <a class="btn" href="/walker.html">Walker (movil)</a>
-      <a class="btn secondary" href="/monitor.html">Monitor (acompanante)</a>
+      <div class="field-group">
+        <label for="room-input">CÓDIGO DE SALA</label>
+        <input id="room-input" type="text" maxlength="8" placeholder="ej. SALA01" autocomplete="off" spellcheck="false" />
+      </div>
+
+      <div class="field-group">
+        <label>DESTINO</label>
+
+        <div class="preset-grid">
+          <button class="preset-btn" type="button" data-lat="40.4168" data-lng="-3.7038">
+            Puerta del Sol
+          </button>
+          <button class="preset-btn" type="button" data-lat="40.4155" data-lng="-3.7074">
+            Plaza Mayor
+          </button>
+          <button class="preset-btn" type="button" data-lat="40.4153" data-lng="-3.6844">
+            Parque del Retiro
+          </button>
+          <button class="preset-btn" type="button" data-lat="40.3320" data-lng="-3.7650">
+            UC3M Leganés
+          </button>
+        </div>
+
+        <div id="selected-destination" class="selected-destination">
+          Ningún destino seleccionado
+        </div>
+
+        <button id="toggle-manual-btn" class="btn-secondary" type="button">
+          Usar coordenadas manuales
+        </button>
+      </div>
+
+      <div id="manual-destination-fields" class="manual-fields hidden">
+        <div class="field-group">
+          <label for="dest-lat">LATITUD DESTINO</label>
+          <input id="dest-lat" type="number" step="any" placeholder="40.416775" />
+        </div>
+        <div class="field-group">
+          <label for="dest-lng">LONGITUD DESTINO</label>
+          <input id="dest-lng" type="number" step="any" placeholder="-3.703790" />
+        </div>
+      </div>
+
+      <div id="setup-error" class="setup-error hidden"></div>
+
+      <button id="start-btn" class="btn-primary">CONFIRMAR DESTINO</button>
+      <p class="hint">El acompañante abre <strong>/companion.html</strong> con el mismo código.</p>
+    </div>
+  </div>
+
+  <!-- PRE-ROUTE SCREEN -->
+  <div id="preview-screen" class="hidden preview-screen">
+    <header class="status-bar">
+      <span class="room-tag" id="preview-room-tag"></span>
+      <button id="back-btn" class="btn-stop">← VOLVER</button>
+    </header>
+
+    <main class="preview-main">
+      <section class="comp-card">
+        <h2 class="card-title">DESTINO CONFIRMADO</h2>
+        <div id="preview-destination-name" class="preview-destination-name">—</div>
+        <div id="preview-destination-coords" class="preview-destination-coords">—</div>
+      </section>
+
+      <section class="comp-card">
+        <h2 class="card-title">PRÓXIMOS CAMBIOS DE DIRECCIÓN</h2>
+        <ul id="preview-steps" class="preview-steps"></ul>
+      </section>
+
+      <button id="begin-route-btn" class="btn-primary preview-start-btn">
+        INICIAR TRAYECTO
+      </button>
+    </main>
+  </div>
+
+  <!-- MAIN NAVIGATOR UI -->
+  <div id="nav-ui" class="hidden">
+
+    <header class="status-bar">
+      <span id="conn-dot" class="dot dot-off"></span>
+      <span id="conn-label">Desconectado</span>
+      <span class="room-tag" id="room-tag"></span>
+      <button id="stop-btn" class="btn-stop">■ PARAR</button>
+    </header>
+
+    <main class="direction-panel">
+      <div id="alert-banner" class="alert-banner hidden"></div>
+
+      <div class="arrow-container">
+        <div id="arrow-icon" class="arrow-icon">—</div>
+        <div id="direction-label" class="direction-label">ESPERANDO GPS…</div>
+        <div id="distance-label" class="distance-label"></div>
+      </div>
+
+      <div class="pills-row">
+        <div class="pill" id="pill-gps">
+          <span class="pill-dot"></span> GPS
+        </div>
+        <div class="pill" id="pill-voice">
+          <span class="pill-dot"></span> VOZ
+        </div>
+        <div class="pill" id="pill-haptic">
+          <span class="pill-dot"></span> HÁPTICO
+        </div>
+        <div class="pill" id="pill-visual">
+          <span class="pill-dot"></span> VISUAL
+        </div>
+      </div>
+    </main>
+
+    <footer class="coords-footer">
+      <div class="coord-item"><span class="coord-lbl">LAT</span><span id="lat-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">LNG</span><span id="lng-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">DIST</span><span id="dist-val">—</span></div>
+    </footer>
+
+    <div class="voice-fab-wrapper">
+      <button id="voice-btn" class="voice-fab" title="Comando de voz">🎙</button>
+      <span class="voice-fab-label">VOCALIZA</span>
     </div>
 
-    <p class="hint">
-      Flujo rapido: abre <strong>Walker</strong> en movil, pulsa Start para crear sesion y comparte el
-      codigo con <strong>Monitor</strong>.
-    </p>
-  </main>
-</body>
+  </div>
 
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>

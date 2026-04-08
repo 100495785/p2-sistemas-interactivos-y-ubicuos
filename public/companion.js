@@ -1,0 +1,215 @@
+/* ═══════════════════════════════════════════════════════
+   HAPTICNAV — companion.js  (Vista acompañante)
+═══════════════════════════════════════════════════════ */
+
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+const setupOverlay = $("setup-overlay");
+const compUi       = $("comp-ui");
+const roomInput    = $("room-input");
+const joinBtn      = $("join-btn");
+
+const connDot      = $("conn-dot");
+const connLabel    = $("conn-label");
+const roomTag      = $("room-tag");
+const navBadge     = $("nav-status-badge");
+
+const compArrow    = $("comp-arrow");
+const compDirLabel = $("comp-dir-label");
+const cLat         = $("c-lat");
+const cLng         = $("c-lng");
+const cTs          = $("c-ts");
+
+const stateStopped  = $("state-stopped");
+const stateWrong    = $("state-wrong");
+const stateArrived  = $("state-arrived");
+
+const eventLog = $("event-log");
+
+const DIRECTIONS = {
+  LEFT:            { arrow: "←", label: "GIRA A LA IZQUIERDA" },
+  RIGHT:           { arrow: "→", label: "GIRA A LA DERECHA" },
+  STRAIGHT:        { arrow: "↑", label: "CONTINÚA RECTO" },
+  ARRIVED:         { arrow: "⬡", label: "HA LLEGADO" },
+  WRONG_DIRECTION: { arrow: "✕", label: "RUTA ERRÓNEA ⚠" },
+};
+
+let socket;
+let map;
+let userMarker;
+let destMarker;
+
+// ── SETUP ──────────────────────────────────────────────────────────────────
+joinBtn.addEventListener("click", () => {
+  const room = roomInput.value.trim().toUpperCase();
+  if (!room) return;
+
+  setupOverlay.classList.remove("active");
+  compUi.classList.remove("hidden");
+  roomTag.textContent = room;
+
+  initSocket(room);
+});
+
+// ── SOCKET ─────────────────────────────────────────────────────────────────
+function initSocket(roomId) {
+  socket = io();
+
+  socket.on("connect", () => {
+    setConnStatus(true);
+    socket.emit("JOIN_AS_COMPANION", { roomId });
+    logEvent("Conectado como acompañante", "ev-info");
+    initMap();
+  });
+
+  socket.on("disconnect", () => {
+    setConnStatus(false);
+    logEvent("Desconectado del servidor", "ev-warn");
+  });
+
+  socket.on("NAVIGATOR_ONLINE", () => {
+    navBadge.textContent = "NAV ONLINE";
+    navBadge.classList.add("online");
+    logEvent("Navegador conectado", "ev-ok");
+  });
+
+  socket.on("NAVIGATOR_OFFLINE", () => {
+    navBadge.textContent = "NAV OFFLINE";
+    navBadge.classList.remove("online");
+    logEvent("Navegador desconectado", "ev-warn");
+  });
+
+  socket.on("STATE_SNAPSHOT", (snap) => {
+    if (snap.position) updatePosition(snap.position);
+    if (snap.direction) updateDirection(snap.direction);
+    if (snap.stopped) updateStopped(true);
+    if (snap.destination) updateDestination(snap.destination);
+    if (snap.wrongDirection) {
+      setStateIndicator(stateWrong, "state-on-wrong");
+    }
+  });
+
+  socket.on("POSITION_UPDATE", (data) => {
+    updatePosition(data);
+  });
+
+  socket.on("NEXT_DIRECTION", (data) => {
+    updateDirection(data);
+  });
+
+  socket.on("STOPPED", () => {
+    updateStopped(true);
+    logEvent("Usuario detenido", "ev-warn");
+  });
+
+  socket.on("MOVING", () => {
+    updateStopped(false);
+    logEvent("Usuario en movimiento", "ev-info");
+  });
+
+  socket.on("WRONG_DIRECTION", () => {
+    setStateIndicator(stateWrong, "state-on-wrong");
+    logEvent("⚠ Ruta errónea detectada", "ev-warn");
+    setTimeout(() => setStateIndicator(stateWrong, null), 5000);
+  });
+
+  socket.on("VOICE_COMMAND", (data) => {
+    logEvent(`🎙 Comando voz: "${data.command}"`, "ev-info");
+  });
+
+  socket.on("DESTINATION_SET", (data) => {
+    updateDestination(data);
+    logEvent(`Destino recibido`, "ev-info");
+  });
+}
+
+// ── MAP ────────────────────────────────────────────────────────────────────
+function initMap() {
+  if (map) return;
+
+  map = L.map("map").setView([40.4168, -3.7038], 13);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap contributors"
+  }).addTo(map);
+}
+
+function updateMap(lat, lng) {
+  if (!map) return;
+
+  if (!userMarker) {
+    userMarker = L.marker([lat, lng]).addTo(map).bindPopup("Usuario");
+    map.setView([lat, lng], 16);
+  } else {
+    userMarker.setLatLng([lat, lng]);
+    map.panTo([lat, lng]);
+  }
+}
+
+function updateDestination(data) {
+  if (!map) initMap();
+  if (typeof data.latitude !== "number" || typeof data.longitude !== "number") return;
+
+  if (!destMarker) {
+    destMarker = L.marker([data.latitude, data.longitude]).addTo(map).bindPopup("Destino");
+  } else {
+    destMarker.setLatLng([data.latitude, data.longitude]);
+  }
+}
+
+// ── UPDATERS ────────────────────────────────────────────────────────────────
+
+function updatePosition(data) {
+  cLat.textContent = data.latitude?.toFixed(6) ?? "—";
+  cLng.textContent = data.longitude?.toFixed(6) ?? "—";
+
+  if (typeof data.latitude === "number" && typeof data.longitude === "number") {
+    updateMap(data.latitude, data.longitude);
+  }
+
+  if (data.timestamp) {
+    const d = new Date(data.timestamp);
+    cTs.textContent = `Actualizado ${d.toLocaleTimeString("es-ES")}`;
+  }
+}
+
+function updateDirection(data) {
+  const cfg = DIRECTIONS[data.direction] || DIRECTIONS.STRAIGHT;
+  compArrow.textContent    = cfg.arrow;
+  compDirLabel.textContent = cfg.label;
+
+  logEvent(`Indicación: ${cfg.label}`, "ev-info");
+
+  if (data.direction === "ARRIVED") {
+    setStateIndicator(stateArrived, "state-on-arrived");
+  }
+}
+
+function updateStopped(stopped) {
+  setStateIndicator(stateStopped, stopped ? "state-on-stop" : null);
+}
+
+function setStateIndicator(el, activeClass) {
+  el.className = "state-indicator " + (activeClass ?? "state-off");
+}
+
+// ── LOG ─────────────────────────────────────────────────────────────────────
+function logEvent(msg, cls = "") {
+  const li = document.createElement("li");
+  li.className = cls;
+  const now = new Date().toLocaleTimeString("es-ES");
+  li.textContent = `[${now}] ${msg}`;
+  eventLog.prepend(li);
+
+  while (eventLog.children.length > 50) {
+    eventLog.removeChild(eventLog.lastChild);
+  }
+}
+
+// ── CONN STATUS ─────────────────────────────────────────────────────────────
+function setConnStatus(online) {
+  connDot.className     = "dot " + (online ? "dot-on" : "dot-off");
+  connLabel.textContent = online ? "Conectado" : "Desconectado";
+}
