@@ -32,9 +32,16 @@ const state = {
   routeStarted: false,
   previewSteps: [],
 
-  // NUEVO: polling GPS en vez de watchPosition
   gpsIntervalId: null,
   isPollingGps: false,
+
+  // Routing real con OSRM
+  routeData: null,
+  routeCoords: [],
+  routeSteps: [],
+  currentStepIndex: 0,
+  isFetchingRoute: false,
+  hasInitialRoute: false,
 };
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -110,6 +117,11 @@ function hideSetupError() {
   setupError.classList.add("hidden");
 }
 
+function updateFooterDestinationInfo() {
+  if (latVal) latVal.textContent = state.destLat != null ? state.destLat.toFixed(5) : "—";
+  if (lngVal) lngVal.textContent = state.destLng != null ? state.destLng.toFixed(5) : "—";
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP — DESTINOS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,6 +136,8 @@ presetButtons.forEach((btn) => {
     state.destLat = parseFloat(btn.dataset.lat);
     state.destLng = parseFloat(btn.dataset.lng);
     state.selectedDestinationName = btn.textContent.trim();
+
+    updateFooterDestinationInfo();
 
     if (selectedDestination) {
       selectedDestination.textContent = `Destino: ${state.selectedDestinationName}`;
@@ -147,6 +161,8 @@ if (toggleManualBtn) {
       state.destLat = null;
       state.destLng = null;
       state.selectedDestinationName = null;
+
+      updateFooterDestinationInfo();
 
       if (selectedDestination) {
         selectedDestination.textContent = "Introduce un destino manual";
@@ -197,6 +213,7 @@ startBtn.addEventListener("click", () => {
     state.destLat = lat;
     state.destLng = lng;
     state.selectedDestinationName = "Destino manual";
+    updateFooterDestinationInfo();
   } else {
     if (state.destLat == null || state.destLng == null) {
       return showSetupError("Debes seleccionar un destino antes de continuar.");
@@ -217,6 +234,12 @@ beginRouteBtn.addEventListener("click", () => {
   navUi.classList.remove("hidden");
   roomTag.textContent = state.roomId;
   state.routeStarted = true;
+
+  updateFooterDestinationInfo();
+
+  try {
+    if (navigator.vibrate) navigator.vibrate(1);
+  } catch (_) {}
 
   initSocket();
   initGeolocation();
@@ -249,12 +272,12 @@ function showPreviewScreen() {
 
 function buildPreviewSteps() {
   state.previewSteps = [
-    "Sal del punto de inicio y mantente recto",
-    "Sigue la dirección general indicada por la app",
-    "Cuando recibas 1 vibración, gira a la izquierda",
-    "Cuando recibas 2 vibraciones, gira a la derecha",
+    "La ruta peatonal se calculará automáticamente al iniciar",
+    "La app seguirá calles reales en lugar de una dirección global simple",
+    "Una vibración indicará giro a la izquierda",
+    "Dos vibraciones indicarán giro a la derecha",
     "Si te detienes 5 segundos, la indicación se repetirá",
-    "Si te desvías, la app te avisará por voz",
+    "Si te sales de la ruta, la app recalculará y avisará por voz",
     "Una vibración larga indicará llegada al destino"
   ];
 }
@@ -275,7 +298,9 @@ function renderPreviewSteps() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initSocket() {
-  state.socket = io();
+  state.socket = io(window.location.origin, {
+    transports: ["websocket", "polling"]
+  });
 
   state.socket.on("connect", () => {
     setConnStatus(true);
@@ -319,10 +344,8 @@ function initGeolocation() {
     return;
   }
 
-  // primera lectura inmediata
   requestCurrentPosition();
 
-  // luego polling cada 5 segundos
   state.gpsIntervalId = setInterval(() => {
     requestCurrentPosition();
   }, 5000);
@@ -354,7 +377,7 @@ function requestCurrentPosition() {
   );
 }
 
-function onPosition(pos) {
+async function onPosition(pos) {
   console.log(
     "GPS OK:",
     pos.coords.latitude,
@@ -370,8 +393,8 @@ function onPosition(pos) {
 
   setPill(pillGps, true);
 
-  latVal.textContent = lat.toFixed(6);
-  lngVal.textContent = lng.toFixed(6);
+  // En el footer queremos mostrar SIEMPRE el destino, no la posición actual
+  updateFooterDestinationInfo();
 
   const dist = haversine(lat, lng, state.destLat, state.destLng);
   distVal.textContent = formatDist(dist);
@@ -383,20 +406,160 @@ function onPosition(pos) {
     timestamp: Date.now()
   });
 
-  detectWrongDirection(dist);
+  if (!state.hasInitialRoute) {
+    await fetchAndStoreRoute(lat, lng, false);
+  }
 
-  const dir = calcDirection(lat, lng, state.destLat, state.destLng, dist);
+  if (state.routeCoords.length > 1) {
+    const offRoute = isOffRoute(lat, lng);
 
-  if (state.lastDirection !== "WRONG_DIRECTION") {
-    applyDirection(dir);
-  } else if (dir === "ARRIVED") {
-    applyDirection(dir);
+    if (offRoute) {
+      applyDirection("WRONG_DIRECTION", true);
+      speak("Te has salido de la ruta. Recalculando.");
+      await fetchAndStoreRoute(lat, lng, true);
+    } else {
+      updateStepIndex(lat, lng);
+      const dir = getDirectionFromCurrentRouteStep(dist);
+      if (state.lastDirection !== "WRONG_DIRECTION") {
+        applyDirection(dir);
+      } else if (dir === "ARRIVED") {
+        applyDirection(dir);
+      }
+    }
+  } else {
+    detectWrongDirectionFallback(dist);
+    const dir = calcDirectionFallback(lat, lng, state.destLat, state.destLng, dist);
+
+    if (state.lastDirection !== "WRONG_DIRECTION") {
+      applyDirection(dir);
+    } else if (dir === "ARRIVED") {
+      applyDirection(dir);
+    }
   }
 
   onMovementDetected();
 }
 
-function detectWrongDirection(currentDist) {
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUTING — OSRM
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
+  if (state.isFetchingRoute) return;
+  if (!forceRecalc && state.routeCoords.length > 1) return;
+
+  state.isFetchingRoute = true;
+
+  try {
+    const url =
+      `https://router.project-osrm.org/route/v1/foot/` +
+      `${originLng},${originLat};${state.destLng},${state.destLat}` +
+      `?overview=full&geometries=geojson&steps=true`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (data.code !== "Ok" || !data.routes?.length) {
+      throw new Error("No se pudo obtener una ruta válida");
+    }
+
+    const route = data.routes[0];
+    const leg = route.legs?.[0];
+
+    state.routeData = route;
+    state.routeCoords = (route.geometry?.coordinates || []).map(([lng, lat]) => ({ lat, lng }));
+    state.routeSteps = leg?.steps || [];
+    state.currentStepIndex = 0;
+    state.hasInitialRoute = true;
+    state.lastDistance = null;
+    state.wrongCounter = 0;
+
+    emit("ROUTE_DATA", {
+      route: state.routeCoords.map(p => ({ latitude: p.lat, longitude: p.lng })),
+      destination: {
+        latitude: state.destLat,
+        longitude: state.destLng,
+        name: state.selectedDestinationName
+      },
+      timestamp: Date.now()
+    });
+
+    console.log("Ruta OSRM cargada:", {
+      puntos: state.routeCoords.length,
+      steps: state.routeSteps.length,
+      distance: route.distance
+    });
+  } catch (error) {
+    console.error("Error obteniendo ruta OSRM:", error);
+    showAlert("No se pudo calcular la ruta real. Usando modo básico.", false);
+  } finally {
+    state.isFetchingRoute = false;
+  }
+}
+
+function updateStepIndex(lat, lng) {
+  if (!state.routeSteps.length) return;
+
+  let bestIndex = state.currentStepIndex;
+  let bestDist = Infinity;
+
+  for (let i = state.currentStepIndex; i < state.routeSteps.length; i++) {
+    const m = state.routeSteps[i]?.maneuver?.location;
+    if (!m || m.length < 2) continue;
+
+    const stepLng = m[0];
+    const stepLat = m[1];
+    const d = haversine(lat, lng, stepLat, stepLng);
+
+    if (d < bestDist) {
+      bestDist = d;
+      bestIndex = i;
+    }
+  }
+
+  state.currentStepIndex = bestIndex;
+}
+
+function getDirectionFromCurrentRouteStep(distToDestination) {
+  if (distToDestination < 15) return "ARRIVED";
+  if (!state.routeSteps.length) return "STRAIGHT";
+
+  const step = state.routeSteps[state.currentStepIndex];
+  if (!step) return "STRAIGHT";
+
+  const maneuver = step.maneuver || {};
+  const modifier = (maneuver.modifier || "").toLowerCase();
+  const type = (maneuver.type || "").toLowerCase();
+
+  if (type === "arrive") return "ARRIVED";
+
+  if (modifier.includes("left")) return "LEFT";
+  if (modifier.includes("right")) return "RIGHT";
+
+  return "STRAIGHT";
+}
+
+function isOffRoute(lat, lng) {
+  if (!state.routeCoords.length) return false;
+
+  let minDist = Infinity;
+
+  for (const point of state.routeCoords) {
+    const d = haversine(lat, lng, point.lat, point.lng);
+    if (d < minDist) minDist = d;
+  }
+
+  console.log("Distancia mínima a la ruta:", Math.round(minDist), "m");
+
+  return minDist > 35;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FALLBACK — LÓGICA ANTIGUA SI FALLA OSRM
+// ─────────────────────────────────────────────────────────────────────────────
+
+function detectWrongDirectionFallback(currentDist) {
   if (state.lastDistance == null) {
     state.lastDistance = currentDist;
     return;
@@ -424,7 +587,7 @@ function detectWrongDirection(currentDist) {
   }
 }
 
-function calcDirection(lat, lng, dLat, dLng, dist) {
+function calcDirectionFallback(lat, lng, dLat, dLng, dist) {
   if (dist < 15) return "ARRIVED";
 
   const bearing = calcBearing(lat, lng, dLat, dLng);
@@ -435,6 +598,10 @@ function calcDirection(lat, lng, dLat, dLng, dist) {
   if (bearing > 135 && bearing <= 225) return "STRAIGHT";
   return "LEFT";
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APLICAR DIRECCIÓN
+// ─────────────────────────────────────────────────────────────────────────────
 
 function applyDirection(dir, force = false) {
   console.log("DIRECCIÓN:", dir, "force:", force);
@@ -456,8 +623,7 @@ function applyDirection(dir, force = false) {
   });
 
   if (dir === "WRONG_DIRECTION") {
-    showAlert("⚠ RUTA ERRÓNEA — Gira y sigue las indicaciones", true);
-    speak("Te has equivocado de ruta. Gira y sigue las indicaciones.");
+    showAlert("⚠ RUTA ERRÓNEA — Recalculando", true);
     emit("WRONG_DIRECTION", { timestamp: Date.now() });
   } else if (dir === "ARRIVED") {
     hideAlert();
@@ -563,7 +729,7 @@ function initVoiceRecognition() {
   });
 }
 
-function handleVoiceCommand(text) {
+async function handleVoiceCommand(text) {
   emit("VOICE_COMMAND", {
     command: text,
     timestamp: Date.now()
@@ -573,8 +739,13 @@ function handleVoiceCommand(text) {
     repeatLastIndication();
     speak("Repitiendo indicación.");
   } else if (text.includes("perdido") || text.includes("lost") || text.includes("ayuda")) {
-    speak("Parece que estás perdido. Sigue las indicaciones.");
-    applyDirection("WRONG_DIRECTION", true);
+    speak("Voy a recalcular la ruta.");
+    if (state.currentPos) {
+      state.routeCoords = [];
+      state.routeSteps = [];
+      await fetchAndStoreRoute(state.currentPos.lat, state.currentPos.lng, true);
+      applyDirection("WRONG_DIRECTION", true);
+    }
   } else {
     speak("Comando no reconocido.");
   }
@@ -585,10 +756,6 @@ function handleVoiceCommand(text) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initVisibilityDetection() {
-  ["touchstart", "touchmove", "click"].forEach(evt => {
-    document.addEventListener(evt, activateVisualModeTemporarily, { passive: true });
-  });
-
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") {
       activateHapticMode();
@@ -670,7 +837,12 @@ function vibrate(pattern) {
 
   if (!pattern || pattern.length === 0) return;
 
-  navigator.vibrate(pattern);
+  try {
+    navigator.vibrate(0);
+    navigator.vibrate(pattern);
+  } catch (error) {
+    console.warn("Error al vibrar:", error);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

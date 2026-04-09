@@ -2,13 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HapticNav — Selección de rol</title>
 
   <link rel="stylesheet" href="style.css">
 
   <style>
-    /* Layout específico para la pantalla inicial */
-
     .home-container {
       height: 100vh;
       height: 100dvh;
@@ -21,18 +20,14 @@
     .home-box {
       width: 100%;
       max-width: 420px;
-
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: var(--r);
       box-shadow: var(--shadow);
-
       padding: 40px 30px;
-
       display: flex;
       flex-direction: column;
       gap: 26px;
-
       animation: fadeUp .4s ease;
     }
 
@@ -44,6 +39,7 @@
       text-align: center;
       color: var(--amber);
       text-shadow: 0 0 20px rgba(245,166,35,.4);
+      line-height: 1.15;
     }
 
     .home-sub {
@@ -52,6 +48,7 @@
       letter-spacing: .1em;
       font-size: .8rem;
       text-transform: uppercase;
+      line-height: 1.4;
     }
 
     .role-buttons {
@@ -65,18 +62,13 @@
       background: var(--bg3);
       border: 1px solid var(--border);
       border-radius: var(--r);
-
       color: var(--text);
-
       font-family: var(--font-disp);
       font-weight: 700;
       font-size: .9rem;
       letter-spacing: .12em;
-
       padding: 16px;
-
       cursor: pointer;
-
       transition: all .18s;
       text-transform: uppercase;
     }
@@ -90,12 +82,6 @@
     .role-btn:active {
       transform: scale(.97);
     }
-
-    .role-icon {
-      font-size: 1.6rem;
-      margin-right: 8px;
-    }
-
   </style>
 </head>
 
@@ -134,7 +120,6 @@
 </div>
 
 <script>
-
 function goNavigator() {
   window.location.href = "/index.html";
 }
@@ -142,7 +127,6 @@ function goNavigator() {
 function goCompanion() {
   window.location.href = "/companion.html";
 }
-
 </script>
 
 </body>

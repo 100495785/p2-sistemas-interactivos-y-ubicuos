@@ -10,6 +10,7 @@ const setupOverlay = $("setup-overlay");
 const compUi       = $("comp-ui");
 const roomInput    = $("room-input");
 const joinBtn      = $("join-btn");
+const exitBtn      = $("exit-btn");
 
 const connDot      = $("conn-dot");
 const connLabel    = $("conn-label");
@@ -36,10 +37,11 @@ const DIRECTIONS = {
   WRONG_DIRECTION: { arrow: "✕", label: "RUTA ERRÓNEA ⚠" },
 };
 
-let socket;
-let map;
-let userMarker;
-let destMarker;
+let socket = null;
+let map = null;
+let userMarker = null;
+let destMarker = null;
+let routeLine = null;
 
 // ── SETUP ──────────────────────────────────────────────────────────────────
 joinBtn.addEventListener("click", () => {
@@ -53,9 +55,57 @@ joinBtn.addEventListener("click", () => {
   initSocket(room);
 });
 
+if (exitBtn) {
+  exitBtn.addEventListener("click", () => {
+    leaveCompanionView();
+  });
+}
+
+// ── SALIR / VOLVER A INTRODUCIR SALA ───────────────────────────────────────
+function leaveCompanionView() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
+  if (map) {
+    map.remove();
+    map = null;
+  }
+
+  userMarker = null;
+  destMarker = null;
+  routeLine = null;
+
+  roomTag.textContent = "";
+  roomInput.value = "";
+
+  compArrow.textContent = "—";
+  compDirLabel.textContent = "Sin datos";
+  cLat.textContent = "—";
+  cLng.textContent = "—";
+  cTs.textContent = "Sin señal GPS";
+
+  setStateIndicator(stateStopped, null);
+  setStateIndicator(stateWrong, null);
+  setStateIndicator(stateArrived, null);
+
+  navBadge.textContent = "NAV OFFLINE";
+  navBadge.classList.remove("online");
+
+  eventLog.innerHTML = "";
+
+  setConnStatus(false);
+
+  compUi.classList.add("hidden");
+  setupOverlay.classList.add("active");
+}
+
 // ── SOCKET ─────────────────────────────────────────────────────────────────
 function initSocket(roomId) {
-  socket = io();
+  socket = io(window.location.origin, {
+    transports: ["websocket", "polling"]
+  });
 
   socket.on("connect", () => {
     setConnStatus(true);
@@ -88,6 +138,9 @@ function initSocket(roomId) {
     if (snap.destination) updateDestination(snap.destination);
     if (snap.wrongDirection) {
       setStateIndicator(stateWrong, "state-on-wrong");
+    }
+    if (snap.route?.length) {
+      updateRoute(snap.route);
     }
   });
 
@@ -123,13 +176,19 @@ function initSocket(roomId) {
     updateDestination(data);
     logEvent(`Destino recibido`, "ev-info");
   });
+
+  socket.on("ROUTE_DATA", (data) => {
+    if (data.destination) updateDestination(data.destination);
+    if (Array.isArray(data.route)) updateRoute(data.route);
+    logEvent("Ruta actualizada", "ev-ok");
+  });
 }
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function initMap() {
   if (map) return;
 
-  map = L.map("map").setView([40.4168, -3.7038], 13);
+  map = L.map("map").setView([40.55166, -4.01202], 13);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors"
@@ -153,10 +212,31 @@ function updateDestination(data) {
   if (typeof data.latitude !== "number" || typeof data.longitude !== "number") return;
 
   if (!destMarker) {
-    destMarker = L.marker([data.latitude, data.longitude]).addTo(map).bindPopup("Destino");
+    destMarker = L.marker([data.latitude, data.longitude]).addTo(map).bindPopup(data.name || "Destino");
   } else {
     destMarker.setLatLng([data.latitude, data.longitude]);
+    if (data.name) destMarker.bindPopup(data.name);
   }
+}
+
+function updateRoute(routePoints) {
+  if (!map || !Array.isArray(routePoints) || routePoints.length < 2) return;
+
+  const latLngs = routePoints
+    .filter(p => typeof p.latitude === "number" && typeof p.longitude === "number")
+    .map(p => [p.latitude, p.longitude]);
+
+  if (latLngs.length < 2) return;
+
+  if (routeLine) {
+    routeLine.setLatLngs(latLngs);
+  } else {
+    routeLine = L.polyline(latLngs, { weight: 5 }).addTo(map);
+  }
+
+  try {
+    map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+  } catch (_) {}
 }
 
 // ── UPDATERS ────────────────────────────────────────────────────────────────

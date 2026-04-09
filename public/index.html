@@ -27,17 +27,17 @@
         <label>DESTINO</label>
 
         <div class="preset-grid">
-          <button class="preset-btn" type="button" data-lat="40.4168" data-lng="-3.7038">
-            Puerta del Sol
+          <button class="preset-btn" type="button" data-lat="40.55166" data-lng="-4.01202">
+            Polideportivo Colmenarejo
           </button>
-          <button class="preset-btn" type="button" data-lat="40.4155" data-lng="-3.7074">
-            Plaza Mayor
+          <button class="preset-btn" type="button" data-lat="40.69502" data-lng="-4.06918">
+            Eva's Blooms
           </button>
-          <button class="preset-btn" type="button" data-lat="40.4153" data-lng="-3.6844">
-            Parque del Retiro
+          <button class="preset-btn" type="button" data-lat="40.59477" data-lng="-4.12905">
+            Dia El Escorial
           </button>
-          <button class="preset-btn" type="button" data-lat="40.3320" data-lng="-3.7650">
-            UC3M Leganés
+          <button class="preset-btn" type="button" data-lat="40.54298" data-lng="-4.01115">
+            Parking UC3M Colmenarejo
           </button>
         </div>
 
@@ -63,7 +63,11 @@
 
       <div id="setup-error" class="setup-error hidden"></div>
 
-      <button id="start-btn" class="btn-primary">CONFIRMAR DESTINO</button>
+      <div class="setup-actions">
+        <button id="start-btn" class="btn-primary">CONFIRMAR DESTINO</button>
+        <a href="/home.html" class="btn-ghost">← VOLVER</a>
+      </div>
+
       <p class="hint">El acompañante abre <strong>/companion.html</strong> con el mismo código.</p>
     </div>
   </div>
@@ -129,8 +133,8 @@
     </main>
 
     <footer class="coords-footer">
-      <div class="coord-item"><span class="coord-lbl">LAT</span><span id="lat-val">—</span></div>
-      <div class="coord-item"><span class="coord-lbl">LNG</span><span id="lng-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">LAT DEST</span><span id="lat-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">LNG DEST</span><span id="lng-val">—</span></div>
       <div class="coord-item"><span class="coord-lbl">DIST</span><span id="dist-val">—</span></div>
     </footer>
 

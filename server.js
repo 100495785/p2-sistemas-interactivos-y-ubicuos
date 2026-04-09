@@ -17,6 +17,17 @@ app.get("/", (req, res) => {
 // roomId → { navigatorId, state }
 const rooms = {};
 
+function createInitialState() {
+  return {
+    position: null,
+    direction: null,
+    stopped: false,
+    wrongDirection: false,
+    destination: null,
+    route: null
+  };
+}
+
 io.on("connection", (socket) => {
   console.log(`[CONNECT] ${socket.id}`);
 
@@ -28,13 +39,7 @@ io.on("connection", (socket) => {
     if (!rooms[roomId]) {
       rooms[roomId] = {
         navigatorId: null,
-        state: {
-          position: null,
-          direction: null,
-          stopped: false,
-          wrongDirection: false,
-          destination: null
-        }
+        state: createInitialState()
       };
     }
 
@@ -68,18 +73,25 @@ io.on("connection", (socket) => {
     if (!rooms[roomId]) {
       rooms[roomId] = {
         navigatorId: null,
-        state: {
-          position: null,
-          direction: null,
-          stopped: false,
-          wrongDirection: false,
-          destination: null
-        }
+        state: createInitialState()
       };
     }
 
     rooms[roomId].state.destination = data;
     socket.to(roomId).emit("DESTINATION_SET", data);
+  });
+
+  socket.on("ROUTE_DATA", (data) => {
+    const { roomId } = socket.data;
+    if (!roomId || !rooms[roomId]) return;
+
+    rooms[roomId].state.route = data.route || null;
+
+    if (data.destination) {
+      rooms[roomId].state.destination = data.destination;
+    }
+
+    socket.to(roomId).emit("ROUTE_DATA", data);
   });
 
   socket.on("POSITION_UPDATE", (data) => {
