@@ -101,11 +101,14 @@
   <!-- MAIN NAVIGATOR UI -->
   <div id="nav-ui" class="hidden">
 
-    <header class="status-bar">
+    <header class="status-bar route-status-bar">
       <span id="conn-dot" class="dot dot-off"></span>
       <span id="conn-label">Desconectado</span>
       <span class="room-tag" id="room-tag"></span>
-      <button id="stop-btn" class="btn-stop">■ PARAR</button>
+      <div class="route-header-actions">
+        <button id="route-back-btn" class="btn-stop" type="button">← VOLVER</button>
+        <button id="stop-btn" class="btn-stop" type="button">■ PARAR</button>
+      </div>
     </header>
 
     <main class="direction-panel">
@@ -144,6 +147,20 @@
       <span class="voice-fab-label">VOCALIZA</span>
     </div>
 
+  </div>
+
+  <!-- PAUSE OVERLAY -->
+  <div id="pause-overlay" class="route-pause-overlay hidden">
+    <div class="route-pause-box">
+      <div class="route-pause-icon">⏸</div>
+      <h2 class="route-pause-title">RUTA PARADA</h2>
+      <p class="route-pause-text">
+        La navegación está en pausa. Puedes reanudar el recorrido cuando quieras.
+      </p>
+      <div class="route-pause-actions">
+        <button id="resume-btn" class="btn-primary" type="button">REANUDAR</button>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

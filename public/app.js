@@ -35,6 +35,8 @@ const state = {
   gpsIntervalId: null,
   isPollingGps: false,
 
+  isRoutePaused: false,
+
   // Routing real con OSRM
   routeData: null,
   routeCoords: [],
@@ -50,6 +52,7 @@ const $ = (id) => document.getElementById(id);
 const setupOverlay              = $("setup-overlay");
 const previewScreen             = $("preview-screen");
 const navUi                     = $("nav-ui");
+const pauseOverlay              = $("pause-overlay");
 
 const roomInput                 = $("room-input");
 const destLat                   = $("dest-lat");
@@ -59,6 +62,8 @@ const startBtn                  = $("start-btn");
 const backBtn                   = $("back-btn");
 const beginRouteBtn             = $("begin-route-btn");
 const stopBtn                   = $("stop-btn");
+const routeBackBtn              = $("route-back-btn");
+const resumeBtn                 = $("resume-btn");
 
 const connDot                   = $("conn-dot");
 const connLabel                 = $("conn-label");
@@ -234,6 +239,7 @@ beginRouteBtn.addEventListener("click", () => {
   navUi.classList.remove("hidden");
   roomTag.textContent = state.roomId;
   state.routeStarted = true;
+  state.isRoutePaused = false;
 
   updateFooterDestinationInfo();
 
@@ -249,11 +255,20 @@ beginRouteBtn.addEventListener("click", () => {
 });
 
 stopBtn.addEventListener("click", () => {
-  stopGeolocationPolling();
-  if (state.socket) state.socket.disconnect();
-  if (state.recognition) state.recognition.stop();
-  location.reload();
+  pauseRoute();
 });
+
+if (resumeBtn) {
+  resumeBtn.addEventListener("click", () => {
+    resumeRoute();
+  });
+}
+
+if (routeBackBtn) {
+  routeBackBtn.addEventListener("click", () => {
+    leaveRouteAndGoToSetup();
+  });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PREVIEW SCREEN
@@ -294,10 +309,91 @@ function renderPreviewSteps() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PAUSE / RESUME / VOLVER
+// ─────────────────────────────────────────────────────────────────────────────
+
+function pauseRoute() {
+  if (state.isRoutePaused) return;
+
+  state.isRoutePaused = true;
+  stopGeolocationPolling();
+
+  clearTimeout(state.stopTimer);
+
+  if (pauseOverlay) {
+    pauseOverlay.classList.remove("hidden");
+  }
+
+  emit("STOPPED", { timestamp: Date.now(), paused: true });
+}
+
+function resumeRoute() {
+  if (!state.isRoutePaused) return;
+
+  state.isRoutePaused = false;
+
+  if (pauseOverlay) {
+    pauseOverlay.classList.add("hidden");
+  }
+
+  initGeolocation();
+  emit("MOVING", { timestamp: Date.now(), resumed: true });
+}
+
+function leaveRouteAndGoToSetup() {
+  stopGeolocationPolling();
+  clearTimeout(state.stopTimer);
+
+  if (state.socket) {
+    state.socket.disconnect();
+    state.socket = null;
+  }
+
+  if (state.recognition) {
+    try {
+      state.recognition.stop();
+    } catch (_) {}
+  }
+
+  state.isRoutePaused = false;
+  state.routeStarted = false;
+  state.isStopped = false;
+  state.isPollingGps = false;
+  state.lastDirection = null;
+  state.currentPos = null;
+  state.routeData = null;
+  state.routeCoords = [];
+  state.routeSteps = [];
+  state.currentStepIndex = 0;
+  state.hasInitialRoute = false;
+  state.isFetchingRoute = false;
+  state.lastDistance = null;
+  state.wrongCounter = 0;
+
+  if (pauseOverlay) {
+    pauseOverlay.classList.add("hidden");
+  }
+
+  navUi.classList.add("hidden");
+  previewScreen.classList.add("hidden");
+  setupOverlay.classList.add("active");
+
+  setConnStatus(false);
+  hideAlert();
+
+  arrowIcon.textContent = "—";
+  dirLabel.textContent = "ESPERANDO GPS…";
+  distLabel.textContent = "";
+  distVal.textContent = "—";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SOCKET.IO
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initSocket() {
+  if (state.socket?.connected) return;
+
   state.socket = io(window.location.origin, {
     transports: ["websocket", "polling"]
   });
@@ -344,6 +440,8 @@ function initGeolocation() {
     return;
   }
 
+  if (state.isPollingGps) return;
+
   requestCurrentPosition();
 
   state.gpsIntervalId = setInterval(() => {
@@ -378,6 +476,8 @@ function requestCurrentPosition() {
 }
 
 async function onPosition(pos) {
+  if (state.isRoutePaused) return;
+
   console.log(
     "GPS OK:",
     pos.coords.latitude,
@@ -393,7 +493,6 @@ async function onPosition(pos) {
 
   setPill(pillGps, true);
 
-  // En el footer queremos mostrar SIEMPRE el destino, no la posición actual
   updateFooterDestinationInfo();
 
   const dist = haversine(lat, lng, state.destLat, state.destLng);
@@ -604,6 +703,8 @@ function calcDirectionFallback(lat, lng, dLat, dLng, dist) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function applyDirection(dir, force = false) {
+  if (state.isRoutePaused) return;
+
   console.log("DIRECCIÓN:", dir, "force:", force);
 
   if (dir === state.lastDirection && !force) return;
@@ -634,7 +735,7 @@ function applyDirection(dir, force = false) {
 }
 
 function repeatLastIndication() {
-  if (!state.lastDirection) return;
+  if (!state.lastDirection || state.isRoutePaused) return;
   applyDirection(state.lastDirection, true);
 }
 
@@ -663,6 +764,8 @@ function onMovementDetected() {
 
 function initDeviceMotion() {
   window.addEventListener("devicemotion", (e) => {
+    if (state.isRoutePaused) return;
+
     const acc = e.accelerationIncludingGravity;
     if (!acc) return;
 
@@ -681,6 +784,8 @@ function initDeviceMotion() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initVoiceRecognition() {
+  if (state.recognition) return;
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
@@ -730,6 +835,8 @@ function initVoiceRecognition() {
 }
 
 async function handleVoiceCommand(text) {
+  if (state.isRoutePaused) return;
+
   emit("VOICE_COMMAND", {
     command: text,
     timestamp: Date.now()

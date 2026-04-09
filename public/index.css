@@ -7,6 +7,17 @@
   height: 100dvh;
 }
 
+.route-status-bar {
+  justify-content: space-between;
+}
+
+.route-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .direction-panel {
   flex: 1;
   display: flex;
@@ -366,7 +377,65 @@
   letter-spacing: .1em;
 }
 
+/* ── PAUSE OVERLAY ───────────────────────────────────── */
+
+.route-pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 10, 12, 0.92);
+}
+
+.route-pause-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: center;
+}
+
+.route-pause-icon {
+  font-size: 3rem;
+  color: var(--amber);
+}
+
+.route-pause-title {
+  font-family: var(--font-disp);
+  font-size: 1.5rem;
+  letter-spacing: .08em;
+  color: var(--amber);
+}
+
+.route-pause-text {
+  color: var(--text);
+  font-size: .95rem;
+  line-height: 1.5;
+}
+
+.route-pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* on mobile */
 @media (max-width: 700px) {
+  .route-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .direction-panel {
     padding: 24px 16px 22px;
     gap: 24px;
@@ -476,9 +545,26 @@
   .visual-sub {
     font-size: .88rem;
   }
+
+  .route-pause-box {
+    padding: 28px 20px;
+  }
+
+  .route-pause-title {
+    font-size: 1.3rem;
+  }
+
+  .route-pause-text {
+    font-size: .92rem;
+  }
 }
 
 @media (max-width: 400px) {
+  .route-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .arrow-icon {
     font-size: 6.4rem;
   }
@@ -540,5 +626,17 @@
 
   .visual-text {
     font-size: 1.22rem;
+  }
+
+  .route-pause-box {
+    padding: 24px 18px;
+  }
+
+  .route-pause-title {
+    font-size: 1.16rem;
+  }
+
+  .route-pause-text {
+    font-size: .84rem;
   }
 }
