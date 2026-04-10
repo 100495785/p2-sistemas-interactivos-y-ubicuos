@@ -552,3 +552,21 @@
     letter-spacing: .12em;
   }
 }
+
+.route-pause-text {
+  color: var(--text);
+  font-size: .96rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .route-pause-text {
+    font-size: .92rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .route-pause-text {
+    font-size: .86rem;
+  }
+}

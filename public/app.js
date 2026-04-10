@@ -33,6 +33,7 @@ const state = {
   isPollingGps: false,
 
   isRoutePaused: false,
+  isRecalculatingRoute: false,
 
   routeData: null,
   routeCoords: [],
@@ -54,6 +55,7 @@ const setupOverlay              = $("setup-overlay");
 const previewScreen             = $("preview-screen");
 const navUi                     = $("nav-ui");
 const pauseOverlay              = $("pause-overlay");
+const recalculatingOverlay      = $("recalculating-overlay");
 
 const roomInput                 = $("room-input");
 const destLat                   = $("dest-lat");
@@ -165,6 +167,16 @@ function stopSpeechIfAny() {
   window.speechSynthesis.cancel();
   state.isSpeaking = false;
   state.speechSynthUtterance = null;
+}
+
+function showRecalculatingOverlay() {
+  state.isRecalculatingRoute = true;
+  recalculatingOverlay?.classList.remove("hidden");
+}
+
+function hideRecalculatingOverlay() {
+  state.isRecalculatingRoute = false;
+  recalculatingOverlay?.classList.add("hidden");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -364,7 +376,7 @@ function buildPreviewSteps() {
     "Dos vibraciones indicarán giro a la derecha.",
     "Si te detienes 5 segundos, la indicación se repetirá.",
     "Botón de voz o shake para hablarle a la app.",
-    "Puedes decir: “repite”, “pausa ruta”, “parar”, “reanudar ruta”, “seguir”, “cuánto falta” o “cuánto queda”.",
+    "Puedes decir: “repite”, “pausa ruta”, “parar”, “reanudar ruta”, “continuar”, “cuánto falta” o “cuánto queda”.",
     "Si te sales de la ruta, la app recalculará y avisará por voz.",
     "Una vibración larga indicará llegada al destino."
   ];
@@ -386,7 +398,7 @@ function renderPreviewSteps() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function pauseRoute(source = "manual") {
-  if (state.isRoutePaused) return;
+  if (state.isRoutePaused || state.isRecalculatingRoute) return;
 
   state.isRoutePaused = true;
   stopGeolocationPolling();
@@ -398,7 +410,7 @@ function pauseRoute(source = "manual") {
 }
 
 function resumeRoute(source = "manual") {
-  if (!state.isRoutePaused) return;
+  if (!state.isRoutePaused || state.isRecalculatingRoute) return;
 
   state.isRoutePaused = false;
   pauseOverlay?.classList.add("hidden");
@@ -411,6 +423,7 @@ function leaveRouteAndGoToSetup() {
   stopGeolocationPolling();
   clearTimeout(state.stopTimer);
   stopSpeechIfAny();
+  hideRecalculatingOverlay();
 
   if (state.socket) {
     state.socket.disconnect();
@@ -422,6 +435,7 @@ function leaveRouteAndGoToSetup() {
   }
 
   state.isRoutePaused = false;
+  state.isRecalculatingRoute = false;
   state.routeStarted = false;
   state.isStopped = false;
   state.isPollingGps = false;
@@ -497,7 +511,7 @@ function handleCompanionQuickMessage(data) {
   showAlert(`📩 ${msg}`, false);
 
   setTimeout(() => {
-    if (!state.isRoutePaused) hideAlert();
+    if (!state.isRoutePaused && !state.isRecalculatingRoute) hideAlert();
   }, 3500);
 
   if (!state.isListening) {
@@ -559,7 +573,7 @@ function requestCurrentPosition() {
 }
 
 async function onPosition(pos) {
-  if (state.isRoutePaused || state.isListening) return;
+  if (state.isRoutePaused || state.isListening || state.isRecalculatingRoute) return;
 
   const { latitude: lat, longitude: lng } = pos.coords;
   state.currentPos = { lat, lng };
@@ -582,9 +596,7 @@ async function onPosition(pos) {
     const offRoute = isOffRoute(lat, lng);
 
     if (offRoute) {
-      applyDirection("WRONG_DIRECTION", true);
-      speak("Te has salido de la ruta. Recalculando.");
-      await fetchAndStoreRoute(lat, lng, true);
+      await recalculateRouteFromCurrentPosition("Te has salido de la ruta. Recalculando.");
     } else {
       updateStepIndex(lat, lng);
       const dir = getDirectionFromCurrentRouteStep(straightDist);
@@ -680,6 +692,42 @@ async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
     showAlert("No se pudo calcular la ruta real. Usando modo básico.", false);
   } finally {
     state.isFetchingRoute = false;
+  }
+}
+
+async function recalculateRouteFromCurrentPosition(voiceMessage = null) {
+  if (state.isRoutePaused || state.isRecalculatingRoute || !state.currentPos) return;
+
+  stopGeolocationPolling();
+  clearTimeout(state.stopTimer);
+
+  try {
+    showRecalculatingOverlay();
+    applyDirection("WRONG_DIRECTION", true);
+
+    if (voiceMessage) {
+      speak(voiceMessage);
+      await wait(3000);
+    }
+
+    state.routeCoords = [];
+    state.routeSteps = [];
+    state.routeData = null;
+    state.hasInitialRoute = false;
+    state.currentStepIndex = 0;
+    state.lastDirection = null;
+
+    await fetchAndStoreRoute(
+      state.currentPos.lat,
+      state.currentPos.lng,
+      true
+    );
+  } catch (err) {
+    console.error("Error recalculando ruta:", err);
+    speak("No se pudo recalcular la ruta.");
+  } finally {
+    hideRecalculatingOverlay();
+    initGeolocation();
   }
 }
 
@@ -855,7 +903,7 @@ function initDeviceMotion() {
 
     detectShakeForVoice(magnitude);
 
-    if (!state.isRoutePaused && !state.isListening && magnitude > 11.5) {
+    if (!state.isRoutePaused && !state.isListening && !state.isRecalculatingRoute && magnitude > 11.5) {
       onMovementDetected();
     }
   });
@@ -943,7 +991,7 @@ function toggleVoiceRecognition() {
 }
 
 function startVoiceRecognition() {
-  if (!state.recognition || state.isListening) return;
+  if (!state.recognition || state.isListening || state.isRecalculatingRoute) return;
 
   try {
     state.recognition.start();
@@ -974,19 +1022,10 @@ async function handleVoiceCommand(text) {
   });
 
   if (
-    normalized.includes("repite") ||
-    normalized.includes("repiteme") ||
-    normalized.includes("repeat")
-  ) {
-    if (state.isRoutePaused) return;
-    repeatLastIndicationImmediate();
-    return;
-  }
-
-  if (
     normalized.includes("pausa ruta") ||
     normalized.includes("pausar ruta") ||
     normalized === "pausa" ||
+    normalized === "pausar" ||
     normalized === "parar" ||
     normalized.includes("parar ruta")
   ) {
@@ -1001,10 +1040,9 @@ async function handleVoiceCommand(text) {
     normalized.includes("continuar ruta") ||
     normalized.includes("continua ruta") ||
     normalized === "continuar" ||
-    normalized === "continua" ||
-    normalized === "sigue" ||
-    normalized === "seguir" ||
-    normalized.includes("seguir ruta")
+    normalized === "reanudar" ||
+    normalized === "reanuda" ||
+    normalized === "continua"
   ) {
     if (!state.isRoutePaused) return;
     resumeRoute("voice");
@@ -1019,20 +1057,19 @@ async function handleVoiceCommand(text) {
   ) {
     const remaining = getRemainingDistanceText();
     if (!remaining) return;
+
     speak(`Quedan ${remaining}.`);
     return;
   }
 
-  if (normalized.includes("perdido") || normalized.includes("ayuda")) {
-    if (state.isRoutePaused) return;
+  if (
+    normalized.includes("perdido") ||
+    normalized.includes("ayuda")
+  ) {
+    if (state.isRoutePaused || state.isRecalculatingRoute) return;
+    if (!state.currentPos) return;
 
-    speak("Voy a recalcular la ruta.");
-    if (state.currentPos) {
-      state.routeCoords = [];
-      state.routeSteps = [];
-      await fetchAndStoreRoute(state.currentPos.lat, state.currentPos.lng, true);
-      applyDirection("WRONG_DIRECTION", true);
-    }
+    await recalculateRouteFromCurrentPosition("Recalculando la ruta.");
     return;
   }
 
@@ -1105,6 +1142,10 @@ function setPill(el, active) {
   else el.classList.remove("active");
 }
 
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GEO MATH
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1154,5 +1195,4 @@ function formatDuration(seconds) {
 
   if (remaining === 0) return `${hours} h`;
   return `${hours} h ${remaining} min`;
-}  
- 
+}
