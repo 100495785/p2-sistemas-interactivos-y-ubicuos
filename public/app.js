@@ -44,6 +44,13 @@ const state = {
   currentStepIndex: 0,
   isFetchingRoute: false,
   hasInitialRoute: false,
+
+  // Shake gesture
+  motionListenerAttached: false,
+  lastMotionMagnitude: null,
+  shakeCount: 0,
+  lastShakeAt: 0,
+  shakeCooldownUntil: 0,
 };
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
@@ -336,12 +343,12 @@ beginRouteBtn.addEventListener("click", () => {
 });
 
 stopBtn.addEventListener("click", () => {
-  pauseRoute();
+  pauseRoute("manual");
 });
 
 if (resumeBtn) {
   resumeBtn.addEventListener("click", () => {
-    resumeRoute();
+    resumeRoute("manual");
   });
 }
 
@@ -373,6 +380,8 @@ function buildPreviewSteps() {
     "Una vibración indicará giro a la izquierda.",
     "Dos vibraciones indicarán giro a la derecha.",
     "Si te detienes 5 segundos, la indicación se repetirá.",
+    "Puedes decir: “repite”, “pausa ruta”, “reanudar ruta” o “cuánto falta”.",
+    "Un doble shake del móvil pausará o reanudará la ruta.",
     "Si te sales de la ruta, la app recalculará y avisará por voz.",
     "Una vibración larga indicará llegada al destino."
   ];
@@ -393,7 +402,7 @@ function renderPreviewSteps() {
 // PAUSE / RESUME / VOLVER
 // ─────────────────────────────────────────────────────────────────────────────
 
-function pauseRoute() {
+function pauseRoute(source = "manual") {
   if (state.isRoutePaused) return;
 
   state.isRoutePaused = true;
@@ -405,10 +414,16 @@ function pauseRoute() {
     pauseOverlay.classList.remove("hidden");
   }
 
-  emit("STOPPED", { timestamp: Date.now(), paused: true });
+  emit("STOPPED", { timestamp: Date.now(), paused: true, source });
+
+  if (source === "voice") {
+    speak("Ruta pausada.");
+  } else if (source === "shake") {
+    speak("Ruta pausada por gesto.");
+  }
 }
 
-function resumeRoute() {
+function resumeRoute(source = "manual") {
   if (!state.isRoutePaused) return;
 
   state.isRoutePaused = false;
@@ -418,7 +433,13 @@ function resumeRoute() {
   }
 
   initGeolocation();
-  emit("MOVING", { timestamp: Date.now(), resumed: true });
+  emit("MOVING", { timestamp: Date.now(), resumed: true, source });
+
+  if (source === "voice") {
+    speak("Ruta reanudada.");
+  } else if (source === "shake") {
+    speak("Ruta reanudada por gesto.");
+  }
 }
 
 function leaveRouteAndGoToSetup() {
@@ -450,6 +471,10 @@ function leaveRouteAndGoToSetup() {
   state.isFetchingRoute = false;
   state.lastDistance = null;
   state.wrongCounter = 0;
+  state.lastMotionMagnitude = null;
+  state.shakeCount = 0;
+  state.lastShakeAt = 0;
+  state.shakeCooldownUntil = 0;
 
   if (pauseOverlay) {
     pauseOverlay.classList.add("hidden");
@@ -840,24 +865,68 @@ function onMovementDetected() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DEVICE MOTION
+// DEVICE MOTION + SHAKE
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initDeviceMotion() {
-  window.addEventListener("devicemotion", (e) => {
-    if (state.isRoutePaused) return;
+  if (state.motionListenerAttached) return;
 
+  state.motionListenerAttached = true;
+
+  window.addEventListener("devicemotion", (e) => {
     const acc = e.accelerationIncludingGravity;
     if (!acc) return;
 
-    const total = Math.sqrt(
-      (acc.x || 0) ** 2 +
-      (acc.y || 0) ** 2 +
-      (acc.z || 0) ** 2
-    );
+    const x = acc.x || 0;
+    const y = acc.y || 0;
+    const z = acc.z || 0;
 
-    if (total > 11.5) onMovementDetected();
+    const magnitude = Math.sqrt(x * x + y * y + z * z);
+
+    detectShake(magnitude);
+
+    if (state.isRoutePaused) return;
+
+    if (magnitude > 11.5) {
+      onMovementDetected();
+    }
   });
+}
+
+function detectShake(magnitude) {
+  const now = Date.now();
+
+  if (state.lastMotionMagnitude == null) {
+    state.lastMotionMagnitude = magnitude;
+    return;
+  }
+
+  const delta = Math.abs(magnitude - state.lastMotionMagnitude);
+  state.lastMotionMagnitude = magnitude;
+
+  if (now < state.shakeCooldownUntil) return;
+
+  // Umbral alto para evitar confundirlo con caminar normal
+  if (delta < 14) return;
+
+  if (now - state.lastShakeAt > 900) {
+    state.shakeCount = 0;
+  }
+
+  state.shakeCount += 1;
+  state.lastShakeAt = now;
+
+  // Doble shake para alternar pausa/reanudación
+  if (state.shakeCount >= 2) {
+    state.shakeCount = 0;
+    state.shakeCooldownUntil = now + 2200;
+
+    if (state.isRoutePaused) {
+      resumeRoute("shake");
+    } else {
+      pauseRoute("shake");
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -915,18 +984,101 @@ function initVoiceRecognition() {
   });
 }
 
+function normalizeSpeech(text) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function getRemainingDistanceText() {
+  if (!state.currentPos || state.destLat == null || state.destLng == null) {
+    return null;
+  }
+
+  const dist = haversine(
+    state.currentPos.lat,
+    state.currentPos.lng,
+    state.destLat,
+    state.destLng
+  );
+
+  if (dist >= 1000) {
+    return `${(dist / 1000).toFixed(1)} kilómetros`;
+  }
+
+  return `${Math.round(dist)} metros`;
+}
+
 async function handleVoiceCommand(text) {
-  if (state.isRoutePaused) return;
+  const normalized = normalizeSpeech(text);
 
   emit("VOICE_COMMAND", {
     command: text,
     timestamp: Date.now()
   });
 
-  if (text.includes("repite") || text.includes("repíteme") || text.includes("repeat")) {
+  if (normalized.includes("repite") || normalized.includes("repiteme") || normalized.includes("repeat")) {
+    if (state.isRoutePaused) {
+      speak("La ruta está en pausa.");
+      return;
+    }
     repeatLastIndication();
     speak("Repitiendo indicación.");
-  } else if (text.includes("perdido") || text.includes("lost") || text.includes("ayuda")) {
+    return;
+  }
+
+  if (
+    normalized.includes("pausa ruta") ||
+    normalized === "pausa" ||
+    normalized.includes("pausar ruta") ||
+    normalized.includes("pausar")
+  ) {
+    if (state.isRoutePaused) {
+      speak("La ruta ya está pausada.");
+      return;
+    }
+    pauseRoute("voice");
+    return;
+  }
+
+  if (
+    normalized.includes("reanudar ruta") ||
+    normalized.includes("reanuda ruta") ||
+    normalized.includes("reanudar") ||
+    normalized.includes("continuar ruta") ||
+    normalized === "continuar"
+  ) {
+    if (!state.isRoutePaused) {
+      speak("La ruta ya está activa.");
+      return;
+    }
+    resumeRoute("voice");
+    return;
+  }
+
+  if (
+    normalized.includes("cuanto falta") ||
+    normalized.includes("cuanta distancia") ||
+    normalized.includes("distancia") ||
+    normalized.includes("cuanto queda")
+  ) {
+    const remaining = getRemainingDistanceText();
+    if (!remaining) {
+      speak("Todavía no tengo tu posición.");
+      return;
+    }
+    speak(`Quedan ${remaining}.`);
+    return;
+  }
+
+  if (normalized.includes("perdido") || normalized.includes("ayuda")) {
+    if (state.isRoutePaused) {
+      speak("La ruta está en pausa.");
+      return;
+    }
+
     speak("Voy a recalcular la ruta.");
     if (state.currentPos) {
       state.routeCoords = [];
@@ -934,9 +1086,10 @@ async function handleVoiceCommand(text) {
       await fetchAndStoreRoute(state.currentPos.lat, state.currentPos.lng, true);
       applyDirection("WRONG_DIRECTION", true);
     }
-  } else {
-    speak("Comando no reconocido.");
+    return;
   }
+
+  speak("Comando no reconocido.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
