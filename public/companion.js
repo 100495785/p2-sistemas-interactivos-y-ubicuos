@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 const setupOverlay = $("setup-overlay");
 const compUi       = $("comp-ui");
 const roomInput    = $("room-input");
+const roomError    = $("room-error");
 const joinBtn      = $("join-btn");
 const exitBtn      = $("exit-btn");
 
@@ -26,7 +27,7 @@ const stateStopped  = $("state-stopped");
 const stateWrong    = $("state-wrong");
 const stateArrived  = $("state-arrived");
 
-const eventLog       = $("event-log");
+const eventLog        = $("event-log");
 const emptyRoomBanner = $("empty-room-banner");
 const quickMsgButtons = document.querySelectorAll(".quick-msg-btn");
 
@@ -44,16 +45,43 @@ let userMarker = null;
 let destMarker = null;
 let routeLine = null;
 
+// ── HELPERS ERRORES ────────────────────────────────────────────────────────
+function setFieldError(inputEl, errorEl, message) {
+  if (inputEl) inputEl.classList.add("input-error");
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.classList.remove("hidden");
+  }
+}
+
+function clearFieldError(inputEl, errorEl) {
+  if (inputEl) inputEl.classList.remove("input-error");
+  if (errorEl) {
+    errorEl.textContent = "";
+    errorEl.classList.add("hidden");
+  }
+}
+
 // ── SETUP ──────────────────────────────────────────────────────────────────
 joinBtn.addEventListener("click", () => {
   const room = roomInput.value.trim().toUpperCase();
-  if (!room) return;
+
+  if (!room) {
+    setFieldError(roomInput, roomError, "Introduce un código de sala.");
+    return;
+  }
+
+  clearFieldError(roomInput, roomError);
 
   setupOverlay.classList.remove("active");
   compUi.classList.remove("hidden");
   roomTag.textContent = room;
 
   initSocket(room);
+});
+
+roomInput?.addEventListener("input", () => {
+  clearFieldError(roomInput, roomError);
 });
 
 if (exitBtn) {
@@ -108,6 +136,7 @@ function leaveCompanionView() {
   eventLog.innerHTML = "";
   setConnStatus(false);
   setEmptyRoomVisible(false);
+  clearFieldError(roomInput, roomError);
 
   compUi.classList.add("hidden");
   setupOverlay.classList.add("active");
@@ -257,7 +286,6 @@ function updateRoute(routePoints) {
 }
 
 // ── UPDATERS ────────────────────────────────────────────────────────────────
-
 function updatePosition(data) {
   cLat.textContent = data.latitude?.toFixed(6) ?? "—";
   cLng.textContent = data.longitude?.toFixed(6) ?? "—";

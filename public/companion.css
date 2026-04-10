@@ -290,3 +290,15 @@
     font-size: .82rem;
   }
 }
+
+/* Error visual de campo en companion */
+.input-error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 1px rgba(255,59,59,.25);
+}
+
+.field-error {
+  color: var(--red);
+  font-size: .88rem;
+  line-height: 1.35;
+}

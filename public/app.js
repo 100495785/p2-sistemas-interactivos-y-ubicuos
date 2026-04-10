@@ -611,27 +611,17 @@ async function onPosition(pos) {
   onMovementDetected();
 }
 
+// Tiempo estimado simple en base a velocidad media caminando.
+// Se actualiza dinámicamente según cambia la distancia al destino.
 function computeRemainingMetrics(straightDistFallback) {
-  if (state.routeSteps.length > 0) {
-    let remainingDistance = 0;
-    let remainingDuration = 0;
+  const remainingDistance = straightDistFallback ?? 0;
 
-    for (let i = state.currentStepIndex; i < state.routeSteps.length; i++) {
-      remainingDistance += state.routeSteps[i].distance || 0;
-      remainingDuration += state.routeSteps[i].duration || 0;
-    }
-
-    if (remainingDistance > 0 || remainingDuration > 0) {
-      return {
-        distance: remainingDistance,
-        duration: remainingDuration
-      };
-    }
-  }
+  // Velocidad media caminando: 1.3 m/s ≈ 4.7 km/h
+  const remainingDuration = remainingDistance / 1.3;
 
   return {
-    distance: straightDistFallback,
-    duration: straightDistFallback / 1.3
+    distance: remainingDistance,
+    duration: remainingDuration
   };
 }
 
@@ -1164,4 +1154,5 @@ function formatDuration(seconds) {
 
   if (remaining === 0) return `${hours} h`;
   return `${hours} h ${remaining} min`;
-}
+}  
+ 
