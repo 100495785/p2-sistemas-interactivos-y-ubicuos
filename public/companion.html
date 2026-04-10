@@ -40,10 +40,26 @@
     </header>
 
     <main class="companion-main">
+
+      <section id="empty-room-banner" class="comp-card empty-room-banner hidden">
+        <h2 class="card-title">SALA VACÍA</h2>
+        <div class="empty-room-text">No hay nadie en esta sala.</div>
+      </section>
+
       <section class="comp-card direction-card">
         <h2 class="card-title">PRÓXIMA INDICACIÓN</h2>
         <div id="comp-arrow" class="comp-arrow">—</div>
         <div id="comp-dir-label" class="comp-dir-label">Sin datos</div>
+      </section>
+
+      <section class="comp-card">
+        <h2 class="card-title">MENSAJES RÁPIDOS</h2>
+        <div class="quick-msg-grid">
+          <button class="quick-msg-btn" data-message="Ten cuidado">TEN CUIDADO</button>
+          <button class="quick-msg-btn" data-message="Para un momento">PARA UN MOMENTO</button>
+          <button class="quick-msg-btn" data-message="Todo correcto">TODO CORRECTO</button>
+          <button class="quick-msg-btn" data-message="Te llamo ahora">TE LLAMO AHORA</button>
+        </div>
       </section>
 
       <section class="comp-card">
@@ -68,7 +84,7 @@
       </div>
 
       <section class="comp-card log-card">
-        <h2 class="card-title">REGISTRO DE EVENTOS</h2>
+        <h2 class="card-title">REGISTRO</h2>
         <ul id="event-log" class="event-log"></ul>
       </section>
     </main>

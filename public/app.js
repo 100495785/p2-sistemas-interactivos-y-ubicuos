@@ -81,9 +81,8 @@ const arrowIcon                 = $("arrow-icon");
 const dirLabel                  = $("direction-label");
 const distLabel                 = $("distance-label");
 const alertBanner               = $("alert-banner");
-const latVal                    = $("lat-val");
-const lngVal                    = $("lng-val");
 const distVal                   = $("dist-val");
+const timeVal                   = $("time-val");
 
 const voiceFabWrapper           = $("voice-fab-wrapper");
 const voiceBtn                  = $("voice-btn");
@@ -107,6 +106,8 @@ const DIRECTIONS = {
   ARRIVED:         { arrow: "⬡", label: "HAS LLEGADO",         vibration: [650] },
   WRONG_DIRECTION: { arrow: "✕", label: "RUTA ERRÓNEA",        vibration: [100, 100, 100, 100, 100] },
 };
+
+const QUICK_MESSAGE_VIBRATION = [120, 80, 120, 80, 120];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS — ERRORS
@@ -147,11 +148,6 @@ function hideDestinationError() {
   destinationError.classList.add("hidden");
 }
 
-function updateFooterDestinationInfo() {
-  if (latVal) latVal.textContent = state.destLat != null ? state.destLat.toFixed(5) : "—";
-  if (lngVal) lngVal.textContent = state.destLng != null ? state.destLng.toFixed(5) : "—";
-}
-
 function setVoiceUiListening(listening) {
   if (listening) {
     voiceBtn?.classList.add("listening");
@@ -187,8 +183,6 @@ presetButtons.forEach((btn) => {
     state.destLat = parseFloat(btn.dataset.lat);
     state.destLng = parseFloat(btn.dataset.lng);
     state.selectedDestinationName = btn.textContent.trim();
-
-    updateFooterDestinationInfo();
 
     if (selectedDestination) {
       selectedDestination.textContent = `Destino: ${state.selectedDestinationName}`;
@@ -262,7 +256,6 @@ function validateAndResolveDestination() {
     state.destLat = lat;
     state.destLng = lng;
     state.selectedDestinationName = "Destino manual";
-    updateFooterDestinationInfo();
 
     if (selectedDestination) {
       selectedDestination.textContent = "Destino: Destino manual";
@@ -320,7 +313,8 @@ beginRouteBtn.addEventListener("click", () => {
   state.routeStarted = true;
   state.isRoutePaused = false;
 
-  updateFooterDestinationInfo();
+  distVal.textContent = "—";
+  timeVal.textContent = "—";
 
   try {
     if (navigator.vibrate) navigator.vibrate(1);
@@ -459,6 +453,7 @@ function leaveRouteAndGoToSetup() {
   dirLabel.textContent = "ESPERANDO GPS…";
   distLabel.textContent = "";
   distVal.textContent = "—";
+  timeVal.textContent = "—";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -489,6 +484,26 @@ function initSocket() {
 
   state.socket.on("disconnect", () => setConnStatus(false));
   state.socket.on("connect_error", () => setConnStatus(false));
+
+  state.socket.on("COMPANION_QUICK_MESSAGE", (data) => {
+    handleCompanionQuickMessage(data);
+  });
+}
+
+function handleCompanionQuickMessage(data) {
+  const msg = data?.message;
+  if (!msg) return;
+
+  showAlert(`📩 ${msg}`, false);
+
+  setTimeout(() => {
+    if (!state.isRoutePaused) hideAlert();
+  }, 3500);
+
+  if (!state.isListening) {
+    vibrate(QUICK_MESSAGE_VIBRATION);
+    speak(`Mensaje de tu acompañante. ${msg}`);
+  }
 }
 
 function setConnStatus(online) {
@@ -550,11 +565,8 @@ async function onPosition(pos) {
   state.currentPos = { lat, lng };
 
   setPill(pillGps, true);
-  updateFooterDestinationInfo();
 
-  const dist = haversine(lat, lng, state.destLat, state.destLng);
-  distVal.textContent = formatDist(dist);
-  distLabel.textContent = dist > 0 ? `a ${formatDist(dist)}` : "";
+  const straightDist = haversine(lat, lng, state.destLat, state.destLng);
 
   emit("POSITION_UPDATE", {
     latitude: lat,
@@ -575,7 +587,7 @@ async function onPosition(pos) {
       await fetchAndStoreRoute(lat, lng, true);
     } else {
       updateStepIndex(lat, lng);
-      const dir = getDirectionFromCurrentRouteStep(dist);
+      const dir = getDirectionFromCurrentRouteStep(straightDist);
       if (state.lastDirection !== "WRONG_DIRECTION") {
         applyDirection(dir);
       } else if (dir === "ARRIVED") {
@@ -583,8 +595,8 @@ async function onPosition(pos) {
       }
     }
   } else {
-    detectWrongDirectionFallback(dist);
-    const dir = calcDirectionFallback(lat, lng, state.destLat, state.destLng, dist);
+    detectWrongDirectionFallback(straightDist);
+    const dir = calcDirectionFallback(lat, lng, state.destLat, state.destLng, straightDist);
 
     if (state.lastDirection !== "WRONG_DIRECTION") {
       applyDirection(dir);
@@ -593,7 +605,40 @@ async function onPosition(pos) {
     }
   }
 
+  const metrics = computeRemainingMetrics(straightDist);
+  renderRemainingMetrics(metrics.distance, metrics.duration);
+
   onMovementDetected();
+}
+
+function computeRemainingMetrics(straightDistFallback) {
+  if (state.routeSteps.length > 0) {
+    let remainingDistance = 0;
+    let remainingDuration = 0;
+
+    for (let i = state.currentStepIndex; i < state.routeSteps.length; i++) {
+      remainingDistance += state.routeSteps[i].distance || 0;
+      remainingDuration += state.routeSteps[i].duration || 0;
+    }
+
+    if (remainingDistance > 0 || remainingDuration > 0) {
+      return {
+        distance: remainingDistance,
+        duration: remainingDuration
+      };
+    }
+  }
+
+  return {
+    distance: straightDistFallback,
+    duration: straightDistFallback / 1.3
+  };
+}
+
+function renderRemainingMetrics(distanceMeters, durationSeconds) {
+  distVal.textContent = formatDist(distanceMeters);
+  timeVal.textContent = formatDuration(durationSeconds);
+  distLabel.textContent = distanceMeters > 0 ? `a ${formatDist(distanceMeters)}` : "";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -924,19 +969,8 @@ function normalizeSpeech(text) {
 }
 
 function getRemainingDistanceText() {
-  if (!state.currentPos || state.destLat == null || state.destLng == null) {
-    return null;
-  }
-
-  const dist = haversine(
-    state.currentPos.lat,
-    state.currentPos.lng,
-    state.destLat,
-    state.destLng
-  );
-
-  if (dist >= 1000) return `${(dist / 1000).toFixed(1)} kilómetros`;
-  return `${Math.round(dist)} metros`;
+  const raw = distVal?.textContent?.trim();
+  return raw && raw !== "—" ? raw : null;
 }
 
 async function handleVoiceCommand(text) {
@@ -1118,4 +1152,16 @@ function deg2rad(d) {
 
 function formatDist(m) {
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
+}
+
+function formatDuration(seconds) {
+  const mins = Math.max(1, Math.ceil(seconds / 60));
+
+  if (mins < 60) return `${mins} min`;
+
+  const hours = Math.floor(mins / 60);
+  const remaining = mins % 60;
+
+  if (remaining === 0) return `${hours} h`;
+  return `${hours} h ${remaining} min`;
 }

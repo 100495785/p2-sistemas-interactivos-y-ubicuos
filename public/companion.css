@@ -30,11 +30,15 @@
   display: block;
 }
 
-.companion-help {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: .96rem;
-  line-height: 1.5;
+.empty-room-banner {
+  border-color: var(--red);
+  background: rgba(255,59,59,.08);
+}
+
+.empty-room-text {
+  color: #fff;
+  font-size: .95rem;
+  line-height: 1.45;
 }
 
 .direction-card {
@@ -47,7 +51,7 @@
 }
 
 .comp-arrow {
-  font-size: 5.8rem;
+  font-size: 5.5rem;
   line-height: 1;
   color: var(--amber);
   text-shadow: 0 0 30px rgba(245,166,35,.5);
@@ -56,11 +60,36 @@
 
 .comp-dir-label {
   font-family: var(--font-disp);
-  font-size: 1.1rem;
+  font-size: 1rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   text-align: center;
-  line-height: 1.4;
+}
+
+.quick-msg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-msg-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-family: var(--font-disp);
+  font-size: .82rem;
+  letter-spacing: .08em;
+  padding: 14px 10px;
+  cursor: pointer;
+  transition: all .18s;
+  text-transform: uppercase;
+}
+
+.quick-msg-btn:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 16px rgba(245,166,35,.25);
 }
 
 .comp-grid {
@@ -81,9 +110,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 9px 0;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(255,255,255,.06);
-  font-size: .98rem;
 }
 
 .comp-coord:last-of-type {
@@ -92,34 +120,17 @@
 
 .c-ts {
   margin-top: 10px;
-  font-size: .9rem;
+  font-size: .78rem;
   color: var(--text-dim);
-  line-height: 1.45;
-}
-
-.nav-badge {
-  margin-left: 8px;
-  padding: 4px 8px;
-  border: 1px solid var(--red);
-  color: var(--red);
-  border-radius: 4px;
-  font-size: .8rem;
-  letter-spacing: .08em;
-}
-
-.nav-badge.online {
-  border-color: var(--green);
-  color: var(--green);
-  box-shadow: 0 0 10px rgba(57,255,20,.15);
 }
 
 .state-indicator {
   margin-top: 8px;
-  padding: 11px 12px;
+  padding: 10px 12px;
   border-radius: var(--r);
   text-align: center;
   font-family: var(--font-disp);
-  font-size: .86rem;
+  font-size: .75rem;
   letter-spacing: .08em;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -149,7 +160,7 @@
 }
 
 .log-card {
-  min-height: 180px;
+  min-height: 150px;
 }
 
 .event-log {
@@ -157,17 +168,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 220px;
+  max-height: 180px;
   overflow-y: auto;
 }
 
 .event-log li {
-  padding: 11px 12px;
+  padding: 10px 12px;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  font-size: .9rem;
-  line-height: 1.45;
+  font-size: .78rem;
+  line-height: 1.35;
   word-break: break-word;
 }
 
@@ -194,25 +205,30 @@
     gap: 12px;
   }
 
-  .companion-help {
-    font-size: 1rem;
-  }
-
   .comp-card {
     padding: 16px;
   }
 
   .card-title {
-    font-size: 1rem;
+    font-size: .92rem;
   }
 
   .comp-arrow {
-    font-size: 6rem;
+    font-size: 5.8rem;
   }
 
   .comp-dir-label {
-    font-size: 1.16rem;
-    line-height: 1.4;
+    font-size: 1.08rem;
+    line-height: 1.35;
+  }
+
+  .quick-msg-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-msg-btn {
+    font-size: .9rem;
+    padding: 15px 12px;
   }
 
   .comp-grid {
@@ -225,41 +241,37 @@
   }
 
   .comp-coord {
-    font-size: 1rem;
+    font-size: .92rem;
     padding: 10px 0;
   }
 
   .c-ts {
-    font-size: .94rem;
+    font-size: .86rem;
   }
 
   .state-indicator {
-    font-size: .92rem;
-    padding: 12px 12px;
+    font-size: .84rem;
+    padding: 11px 12px;
   }
 
   .event-log {
-    max-height: 240px;
+    max-height: 220px;
   }
 
   .event-log li {
-    font-size: .94rem;
-    padding: 12px 12px;
-    line-height: 1.45;
-  }
-
-  .nav-badge {
-    font-size: .84rem;
+    font-size: .88rem;
+    padding: 11px 12px;
+    line-height: 1.4;
   }
 }
 
 @media (max-width: 400px) {
   .comp-arrow {
-    font-size: 5.2rem;
+    font-size: 4.8rem;
   }
 
   .comp-dir-label {
-    font-size: 1.04rem;
+    font-size: .96rem;
   }
 
   .comp-map {
@@ -267,14 +279,14 @@
   }
 
   .card-title {
-    font-size: .94rem;
+    font-size: .86rem;
   }
 
   .comp-coord,
   .c-ts,
   .state-indicator,
   .event-log li,
-  .companion-help {
-    font-size: .9rem;
+  .quick-msg-btn {
+    font-size: .82rem;
   }
 }

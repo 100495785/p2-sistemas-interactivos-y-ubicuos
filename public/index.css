@@ -147,6 +147,11 @@
   flex-shrink: 0;
 }
 
+.coords-footer-two .coord-item {
+  width: 50%;
+  flex: 0 0 50%;
+}
+
 .coord-item {
   flex: 1;
   display: flex;
@@ -501,7 +506,7 @@
   }
 
   .coord-item {
-    min-width: 33.33%;
+    min-width: 50%;
     padding: 13px 6px;
   }
 

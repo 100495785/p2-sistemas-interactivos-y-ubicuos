@@ -15,7 +15,6 @@ const exitBtn      = $("exit-btn");
 const connDot      = $("conn-dot");
 const connLabel    = $("conn-label");
 const roomTag      = $("room-tag");
-const navBadge     = $("nav-status-badge");
 
 const compArrow    = $("comp-arrow");
 const compDirLabel = $("comp-dir-label");
@@ -27,7 +26,9 @@ const stateStopped  = $("state-stopped");
 const stateWrong    = $("state-wrong");
 const stateArrived  = $("state-arrived");
 
-const eventLog = $("event-log");
+const eventLog       = $("event-log");
+const emptyRoomBanner = $("empty-room-banner");
+const quickMsgButtons = document.querySelectorAll(".quick-msg-btn");
 
 const DIRECTIONS = {
   LEFT:            { arrow: "←", label: "GIRA A LA IZQUIERDA" },
@@ -61,7 +62,21 @@ if (exitBtn) {
   });
 }
 
-// ── SALIR / VOLVER A INTRODUCIR SALA ───────────────────────────────────────
+quickMsgButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const message = btn.dataset.message;
+    if (!socket?.connected || !message) return;
+
+    socket.emit("COMPANION_QUICK_MESSAGE", {
+      message,
+      timestamp: Date.now()
+    });
+
+    logEvent(`Mensaje enviado: ${message}`, "ev-info");
+  });
+});
+
+// ── SALIR ───────────────────────────────────────────────────────────────────
 function leaveCompanionView() {
   if (socket) {
     socket.disconnect();
@@ -90,12 +105,9 @@ function leaveCompanionView() {
   setStateIndicator(stateWrong, null);
   setStateIndicator(stateArrived, null);
 
-  navBadge.textContent = "NAV OFFLINE";
-  navBadge.classList.remove("online");
-
   eventLog.innerHTML = "";
-
   setConnStatus(false);
+  setEmptyRoomVisible(false);
 
   compUi.classList.add("hidden");
   setupOverlay.classList.add("active");
@@ -116,19 +128,23 @@ function initSocket(roomId) {
 
   socket.on("disconnect", () => {
     setConnStatus(false);
+    setEmptyRoomVisible(true);
     logEvent("Desconectado del servidor", "ev-warn");
   });
 
+  socket.on("ROOM_EMPTY", () => {
+    setEmptyRoomVisible(true);
+    logEvent("No hay nadie en esta sala", "ev-warn");
+  });
+
   socket.on("NAVIGATOR_ONLINE", () => {
-    navBadge.textContent = "NAV ONLINE";
-    navBadge.classList.add("online");
-    logEvent("Navegador conectado", "ev-ok");
+    setEmptyRoomVisible(false);
+    logEvent("Usuario principal conectado", "ev-ok");
   });
 
   socket.on("NAVIGATOR_OFFLINE", () => {
-    navBadge.textContent = "NAV OFFLINE";
-    navBadge.classList.remove("online");
-    logEvent("Navegador desconectado", "ev-warn");
+    setEmptyRoomVisible(true);
+    logEvent("Usuario principal desconectado", "ev-warn");
   });
 
   socket.on("STATE_SNAPSHOT", (snap) => {
@@ -164,17 +180,18 @@ function initSocket(roomId) {
 
   socket.on("WRONG_DIRECTION", () => {
     setStateIndicator(stateWrong, "state-on-wrong");
-    logEvent("⚠ Ruta errónea detectada", "ev-warn");
+    logEvent("Ruta errónea detectada", "ev-warn");
     setTimeout(() => setStateIndicator(stateWrong, null), 5000);
   });
 
   socket.on("VOICE_COMMAND", (data) => {
-    logEvent(`🎙 Comando voz: "${data.command}"`, "ev-info");
+    if (!data?.command) return;
+    logEvent(`Comando voz: "${data.command}"`, "ev-info");
   });
 
   socket.on("DESTINATION_SET", (data) => {
     updateDestination(data);
-    logEvent(`Destino recibido`, "ev-info");
+    logEvent("Destino recibido", "ev-info");
   });
 
   socket.on("ROUTE_DATA", (data) => {
@@ -257,7 +274,7 @@ function updatePosition(data) {
 
 function updateDirection(data) {
   const cfg = DIRECTIONS[data.direction] || DIRECTIONS.STRAIGHT;
-  compArrow.textContent    = cfg.arrow;
+  compArrow.textContent = cfg.arrow;
   compDirLabel.textContent = cfg.label;
 
   logEvent(`Indicación: ${cfg.label}`, "ev-info");
@@ -275,6 +292,12 @@ function setStateIndicator(el, activeClass) {
   el.className = "state-indicator " + (activeClass ?? "state-off");
 }
 
+function setEmptyRoomVisible(visible) {
+  if (!emptyRoomBanner) return;
+  if (visible) emptyRoomBanner.classList.remove("hidden");
+  else emptyRoomBanner.classList.add("hidden");
+}
+
 // ── LOG ─────────────────────────────────────────────────────────────────────
 function logEvent(msg, cls = "") {
   const li = document.createElement("li");
@@ -283,13 +306,13 @@ function logEvent(msg, cls = "") {
   li.textContent = `[${now}] ${msg}`;
   eventLog.prepend(li);
 
-  while (eventLog.children.length > 50) {
+  while (eventLog.children.length > 12) {
     eventLog.removeChild(eventLog.lastChild);
   }
 }
 
 // ── CONN STATUS ─────────────────────────────────────────────────────────────
 function setConnStatus(online) {
-  connDot.className     = "dot " + (online ? "dot-on" : "dot-off");
+  connDot.className = "dot " + (online ? "dot-on" : "dot-off");
   connLabel.textContent = online ? "Conectado" : "Desconectado";
 }
