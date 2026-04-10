@@ -58,6 +58,11 @@ const roomInput                 = $("room-input");
 const destLat                   = $("dest-lat");
 const destLng                   = $("dest-lng");
 
+const roomError                 = $("room-error");
+const destinationError          = $("destination-error");
+const destLatError              = $("dest-lat-error");
+const destLngError              = $("dest-lng-error");
+
 const startBtn                  = $("start-btn");
 const backBtn                   = $("back-btn");
 const beginRouteBtn             = $("begin-route-btn");
@@ -88,7 +93,6 @@ const manualFields              = $("manual-destination-fields");
 const toggleManualBtn           = $("toggle-manual-btn");
 const selectedDestination       = $("selected-destination");
 const presetButtons             = document.querySelectorAll(".preset-btn");
-const setupError                = $("setup-error");
 
 const previewDestinationName    = $("preview-destination-name");
 const previewDestinationCoords  = $("preview-destination-coords");
@@ -107,19 +111,42 @@ const DIRECTIONS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS — SETUP ERROR
+// HELPERS — FIELD ERRORS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function showSetupError(msg) {
-  if (!setupError) return;
-  setupError.textContent = msg;
-  setupError.classList.remove("hidden");
+function setFieldError(inputEl, errorEl, message) {
+  if (inputEl) inputEl.classList.add("input-error");
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.classList.remove("hidden");
+  }
 }
 
-function hideSetupError() {
-  if (!setupError) return;
-  setupError.textContent = "";
-  setupError.classList.add("hidden");
+function clearFieldError(inputEl, errorEl) {
+  if (inputEl) inputEl.classList.remove("input-error");
+  if (errorEl) {
+    errorEl.textContent = "";
+    errorEl.classList.add("hidden");
+  }
+}
+
+function clearAllFieldErrors() {
+  clearFieldError(roomInput, roomError);
+  clearFieldError(destLat, destLatError);
+  clearFieldError(destLng, destLngError);
+  if (destinationError) destinationError.classList.add("hidden");
+}
+
+function showDestinationError(message) {
+  if (!destinationError) return;
+  destinationError.textContent = message;
+  destinationError.classList.remove("hidden");
+}
+
+function hideDestinationError() {
+  if (!destinationError) return;
+  destinationError.textContent = "";
+  destinationError.classList.add("hidden");
 }
 
 function updateFooterDestinationInfo() {
@@ -133,7 +160,9 @@ function updateFooterDestinationInfo() {
 
 presetButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    hideSetupError();
+    hideDestinationError();
+    clearFieldError(destLat, destLatError);
+    clearFieldError(destLng, destLngError);
 
     presetButtons.forEach(b => b.classList.remove("selected"));
     btn.classList.add("selected");
@@ -152,7 +181,9 @@ presetButtons.forEach((btn) => {
 
 if (toggleManualBtn) {
   toggleManualBtn.addEventListener("click", () => {
-    hideSetupError();
+    hideDestinationError();
+    clearFieldError(destLat, destLatError);
+    clearFieldError(destLng, destLngError);
 
     state.usingManualDestination = !state.usingManualDestination;
 
@@ -162,67 +193,117 @@ if (toggleManualBtn) {
 
     if (state.usingManualDestination) {
       toggleManualBtn.textContent = "Ocultar coordenadas manuales";
-      presetButtons.forEach(b => b.classList.remove("selected"));
-      state.destLat = null;
-      state.destLng = null;
-      state.selectedDestinationName = null;
-
-      updateFooterDestinationInfo();
-
-      if (selectedDestination) {
+      if (selectedDestination && !state.selectedDestinationName && !getHasSelectedPreset()) {
         selectedDestination.textContent = "Introduce un destino manual";
       }
     } else {
       toggleManualBtn.textContent = "Usar coordenadas manuales";
-      if (selectedDestination) {
-        selectedDestination.textContent = "Ningún destino seleccionado";
-      }
+      clearFieldError(destLat, destLatError);
+      clearFieldError(destLng, destLngError);
     }
   });
 }
 
-if (roomInput) roomInput.addEventListener("input", hideSetupError);
-if (destLat) destLat.addEventListener("input", hideSetupError);
-if (destLng) destLng.addEventListener("input", hideSetupError);
+if (roomInput) {
+  roomInput.addEventListener("input", () => clearFieldError(roomInput, roomError));
+}
+if (destLat) {
+  destLat.addEventListener("input", () => clearFieldError(destLat, destLatError));
+}
+if (destLng) {
+  destLng.addEventListener("input", () => clearFieldError(destLng, destLngError));
+}
+
+function getHasSelectedPreset() {
+  return [...presetButtons].some(btn => btn.classList.contains("selected"));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VALIDACIÓN DE DESTINO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function validateAndResolveDestination() {
+  clearFieldError(destLat, destLatError);
+  clearFieldError(destLng, destLngError);
+  hideDestinationError();
+
+  const hasPreset = getHasSelectedPreset();
+  const latValue = destLat?.value?.trim() ?? "";
+  const lngValue = destLng?.value?.trim() ?? "";
+
+  const hasManualLat = latValue !== "";
+  const hasManualLng = lngValue !== "";
+  const hasAnyManual = hasManualLat || hasManualLng;
+  const hasFullManual = hasManualLat && hasManualLng;
+
+  // Si hay manual completo, tiene prioridad
+  if (hasFullManual) {
+    const lat = parseFloat(latValue);
+    const lng = parseFloat(lngValue);
+
+    let valid = true;
+
+    if (isNaN(lat)) {
+      setFieldError(destLat, destLatError, "Introduce una latitud válida.");
+      valid = false;
+    }
+    if (isNaN(lng)) {
+      setFieldError(destLng, destLngError, "Introduce una longitud válida.");
+      valid = false;
+    }
+    if (!valid) return false;
+
+    state.destLat = lat;
+    state.destLng = lng;
+    state.selectedDestinationName = "Destino manual";
+    updateFooterDestinationInfo();
+
+    if (selectedDestination) {
+      selectedDestination.textContent = "Destino: Destino manual";
+    }
+
+    return true;
+  }
+
+  // Si hay una sola manual rellena, error
+  if (hasAnyManual && !hasFullManual) {
+    if (!hasManualLat) {
+      setFieldError(destLat, destLatError, "Falta completar la latitud.");
+    }
+    if (!hasManualLng) {
+      setFieldError(destLng, destLngError, "Falta completar la longitud.");
+    }
+    showDestinationError("Completa ambas coordenadas manuales o usa un destino predefinido.");
+    return false;
+  }
+
+  // Si no hay manual, vale el preset si existe
+  if (hasPreset && state.destLat != null && state.destLng != null) {
+    return true;
+  }
+
+  showDestinationError("Selecciona un destino predefinido o introduce coordenadas manuales válidas.");
+  return false;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETUP — CONFIRMAR DESTINO
 // ─────────────────────────────────────────────────────────────────────────────
 
 startBtn.addEventListener("click", () => {
-  hideSetupError();
+  clearAllFieldErrors();
 
   const room = roomInput.value.trim().toUpperCase();
 
   if (!room) {
-    return showSetupError("Debes introducir un código de sala.");
+    setFieldError(roomInput, roomError, "Introduce un código de sala.");
+    return;
   }
 
   state.roomId = room;
 
-  if (state.usingManualDestination) {
-    const latValue = destLat?.value ?? "";
-    const lngValue = destLng?.value ?? "";
-
-    if (latValue === "" || lngValue === "") {
-      return showSetupError("Debes introducir latitud y longitud del destino manual.");
-    }
-
-    const lat = parseFloat(latValue);
-    const lng = parseFloat(lngValue);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      return showSetupError("Las coordenadas manuales no son válidas.");
-    }
-
-    state.destLat = lat;
-    state.destLng = lng;
-    state.selectedDestinationName = "Destino manual";
-    updateFooterDestinationInfo();
-  } else {
-    if (state.destLat == null || state.destLng == null) {
-      return showSetupError("Debes seleccionar un destino antes de continuar.");
-    }
+  if (!validateAndResolveDestination()) {
+    return;
   }
 
   buildPreviewSteps();
@@ -287,13 +368,13 @@ function showPreviewScreen() {
 
 function buildPreviewSteps() {
   state.previewSteps = [
-    "La ruta peatonal se calculará automáticamente al iniciar",
-    "La app seguirá calles reales en lugar de una dirección global simple",
-    "Una vibración indicará giro a la izquierda",
-    "Dos vibraciones indicarán giro a la derecha",
-    "Si te detienes 5 segundos, la indicación se repetirá",
-    "Si te sales de la ruta, la app recalculará y avisará por voz",
-    "Una vibración larga indicará llegada al destino"
+    "La ruta peatonal se calculará automáticamente al iniciar.",
+    "La app seguirá calles reales en lugar de una dirección global simple.",
+    "Una vibración indicará giro a la izquierda.",
+    "Dos vibraciones indicarán giro a la derecha.",
+    "Si te detienes 5 segundos, la indicación se repetirá.",
+    "Si te sales de la ruta, la app recalculará y avisará por voz.",
+    "Una vibración larga indicará llegada al destino."
   ];
 }
 

@@ -11,7 +11,7 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/home.html");
+  res.sendFile(path.join(__dirname, "public", "home.html"));
 });
 
 // roomId → { navigatorId, state }
@@ -158,8 +158,23 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🧭 HapticNav server running → http://localhost:${PORT}`);
-  console.log(`   Navigator: http://localhost:${PORT}/`);
-  console.log(`   Companion: http://localhost:${PORT}/companion.html\n`);
+  console.log(`🌐 Red local → http://TU_IP_LOCAL:${PORT}`);
 });
+
+function shutdown(signal) {
+  console.log(`\n🛑 Cerrando servidor HapticNav (${signal})...`);
+  io.close(() => {
+    server.close(() => {
+      console.log("✅ Servidor HapticNav finalizado.");
+      process.exit(0);
+    });
+  });
+
+  setTimeout(() => process.exit(1), 3000);
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

@@ -17,11 +17,12 @@
     <div class="overlay-box">
       <div class="logo-mark">◈</div>
       <h1 class="brand">HAPTICNAV</h1>
-      <p class="brand-sub">Navegación sin mirar</p>
+      <p class="brand-sub">NAVEGACIÓN SIN MIRAR</p>
 
       <div class="field-group">
         <label for="room-input">CÓDIGO DE SALA</label>
         <input id="room-input" type="text" maxlength="8" placeholder="ej. SALA01" autocomplete="off" spellcheck="false" />
+        <div id="room-error" class="field-error hidden">Introduce un código de sala.</div>
       </div>
 
       <div class="field-group">
@@ -46,6 +47,10 @@
           Ningún destino seleccionado
         </div>
 
+        <div id="destination-error" class="field-error hidden">
+          Selecciona un destino predefinido o introduce coordenadas manuales válidas.
+        </div>
+
         <button id="toggle-manual-btn" class="btn-secondary" type="button">
           Usar coordenadas manuales
         </button>
@@ -55,21 +60,20 @@
         <div class="field-group">
           <label for="dest-lat">LATITUD DESTINO</label>
           <input id="dest-lat" type="number" step="any" placeholder="40.416775" />
+          <div id="dest-lat-error" class="field-error hidden">Introduce una latitud válida.</div>
         </div>
+
         <div class="field-group">
           <label for="dest-lng">LONGITUD DESTINO</label>
           <input id="dest-lng" type="number" step="any" placeholder="-3.703790" />
+          <div id="dest-lng-error" class="field-error hidden">Introduce una longitud válida.</div>
         </div>
       </div>
-
-      <div id="setup-error" class="setup-error hidden"></div>
 
       <div class="setup-actions">
         <button id="start-btn" class="btn-primary">CONFIRMAR DESTINO</button>
         <a href="/home.html" class="btn-ghost">← VOLVER</a>
       </div>
-
-      <p class="hint">El acompañante abre <strong>/companion.html</strong> con el mismo código.</p>
     </div>
   </div>
 
@@ -146,7 +150,6 @@
       <button id="voice-btn" class="voice-fab" title="Comando de voz">🎙</button>
       <span class="voice-fab-label">VOCALIZA</span>
     </div>
-
   </div>
 
   <!-- PAUSE OVERLAY -->

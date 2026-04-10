@@ -30,6 +30,13 @@
   display: block;
 }
 
+.companion-help {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: .96rem;
+  line-height: 1.5;
+}
+
 .direction-card {
   display: flex;
   flex-direction: column;
@@ -40,7 +47,7 @@
 }
 
 .comp-arrow {
-  font-size: 5.5rem;
+  font-size: 5.8rem;
   line-height: 1;
   color: var(--amber);
   text-shadow: 0 0 30px rgba(245,166,35,.5);
@@ -49,10 +56,11 @@
 
 .comp-dir-label {
   font-family: var(--font-disp);
-  font-size: 1rem;
+  font-size: 1.1rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   text-align: center;
+  line-height: 1.4;
 }
 
 .comp-grid {
@@ -73,8 +81,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 9px 0;
   border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: .98rem;
 }
 
 .comp-coord:last-of-type {
@@ -83,8 +92,9 @@
 
 .c-ts {
   margin-top: 10px;
-  font-size: .78rem;
+  font-size: .9rem;
   color: var(--text-dim);
+  line-height: 1.45;
 }
 
 .nav-badge {
@@ -93,7 +103,7 @@
   border: 1px solid var(--red);
   color: var(--red);
   border-radius: 4px;
-  font-size: .68rem;
+  font-size: .8rem;
   letter-spacing: .08em;
 }
 
@@ -105,11 +115,11 @@
 
 .state-indicator {
   margin-top: 8px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: var(--r);
   text-align: center;
   font-family: var(--font-disp);
-  font-size: .75rem;
+  font-size: .86rem;
   letter-spacing: .08em;
   border: 1px solid var(--border);
   background: var(--bg3);
@@ -152,12 +162,12 @@
 }
 
 .event-log li {
-  padding: 10px 12px;
+  padding: 11px 12px;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  font-size: .78rem;
-  line-height: 1.35;
+  font-size: .9rem;
+  line-height: 1.45;
   word-break: break-word;
 }
 
@@ -184,21 +194,25 @@
     gap: 12px;
   }
 
+  .companion-help {
+    font-size: 1rem;
+  }
+
   .comp-card {
     padding: 16px;
   }
 
   .card-title {
-    font-size: .92rem;
+    font-size: 1rem;
   }
 
   .comp-arrow {
-    font-size: 5.8rem;
+    font-size: 6rem;
   }
 
   .comp-dir-label {
-    font-size: 1.08rem;
-    line-height: 1.35;
+    font-size: 1.16rem;
+    line-height: 1.4;
   }
 
   .comp-grid {
@@ -211,17 +225,17 @@
   }
 
   .comp-coord {
-    font-size: .92rem;
+    font-size: 1rem;
     padding: 10px 0;
   }
 
   .c-ts {
-    font-size: .86rem;
+    font-size: .94rem;
   }
 
   .state-indicator {
-    font-size: .84rem;
-    padding: 11px 12px;
+    font-size: .92rem;
+    padding: 12px 12px;
   }
 
   .event-log {
@@ -229,19 +243,23 @@
   }
 
   .event-log li {
-    font-size: .88rem;
-    padding: 11px 12px;
-    line-height: 1.4;
+    font-size: .94rem;
+    padding: 12px 12px;
+    line-height: 1.45;
+  }
+
+  .nav-badge {
+    font-size: .84rem;
   }
 }
 
 @media (max-width: 400px) {
   .comp-arrow {
-    font-size: 4.8rem;
+    font-size: 5.2rem;
   }
 
   .comp-dir-label {
-    font-size: .96rem;
+    font-size: 1.04rem;
   }
 
   .comp-map {
@@ -249,13 +267,14 @@
   }
 
   .card-title {
-    font-size: .86rem;
+    font-size: .94rem;
   }
 
   .comp-coord,
   .c-ts,
   .state-indicator,
-  .event-log li {
-    font-size: .82rem;
+  .event-log li,
+  .companion-help {
+    font-size: .9rem;
   }
 }

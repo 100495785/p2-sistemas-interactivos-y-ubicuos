@@ -11,21 +11,21 @@
 
 .home-box {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  padding: 40px 30px;
+  padding: 42px 30px;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 28px;
   animation: fadeUp .4s ease;
 }
 
 .home-title {
   font-family: var(--font-disp);
-  font-size: 1.9rem;
+  font-size: 2.05rem;
   font-weight: 900;
   letter-spacing: .18em;
   text-align: center;
@@ -38,9 +38,9 @@
   text-align: center;
   color: var(--text-dim);
   letter-spacing: .1em;
-  font-size: .8rem;
+  font-size: 1rem;
   text-transform: uppercase;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .role-buttons {
@@ -57,9 +57,9 @@
   color: var(--text);
   font-family: var(--font-disp);
   font-weight: 700;
-  font-size: .9rem;
+  font-size: 1rem;
   letter-spacing: .12em;
-  padding: 16px;
+  padding: 17px;
   cursor: pointer;
   transition: all .18s;
   text-transform: uppercase;
@@ -82,18 +82,18 @@
 
   .home-box {
     max-width: 100%;
-    padding: 42px 26px;
-    gap: 28px;
+    padding: 44px 26px;
+    gap: 30px;
   }
 
   .home-title {
-    font-size: 2.3rem;
+    font-size: 2.35rem;
     line-height: 1.15;
   }
 
   .home-sub {
-    font-size: 1rem;
-    line-height: 1.4;
+    font-size: 1.08rem;
+    line-height: 1.45;
   }
 
   .role-buttons {
@@ -101,26 +101,26 @@
   }
 
   .role-btn {
-    font-size: 1.05rem;
-    padding: 18px 16px;
+    font-size: 1.1rem;
+    padding: 19px 16px;
   }
 }
 
 @media (max-width: 400px) {
   .home-box {
-    padding: 34px 20px;
+    padding: 36px 20px;
   }
 
   .home-title {
-    font-size: 2rem;
+    font-size: 2.08rem;
   }
 
   .home-sub {
-    font-size: .92rem;
+    font-size: .98rem;
   }
 
   .role-btn {
-    font-size: .96rem;
-    padding: 16px 14px;
+    font-size: 1rem;
+    padding: 17px 14px;
   }
 }
