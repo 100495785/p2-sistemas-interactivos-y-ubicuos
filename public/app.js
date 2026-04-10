@@ -371,13 +371,14 @@ function showPreviewScreen() {
 
 function buildPreviewSteps() {
   state.previewSteps = [
-    "La ruta peatonal se calculará automáticamente al iniciar.",
-    "Una vibración indicará giro a la izquierda.",
-    "Dos vibraciones indicarán giro a la derecha.",
+    "La ruta se calcula automáticamente al iniciar.",
+    "1 vibración = giro a la izquierda.",
+    "2 vibraciones = giro a la derecha.",
     "Si te detienes 5 segundos, la indicación se repetirá.",
-    "Botón de voz o shake para hablarle a la app.",
-    "Puedes decir: “repite”, “pausa ruta”, “parar”, “reanudar ruta”, “continuar”, “cuánto falta” o “cuánto queda”.",
-    "Si te sales de la ruta, la app recalculará y avisará por voz.",
+    "Botón de voz o agitar el móvil para hablarle a la app.",
+    "Puedes decir: 'Pausar', 'Seguir' o 'Ayuda'.",
+    "Puedes recibir mensajes de tu acompañante.",
+    "Si te sales de la ruta, la app recalculará y avisará.",
     "Una vibración larga indicará llegada al destino."
   ];
 }
