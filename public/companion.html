@@ -13,7 +13,6 @@
 </head>
 <body class="companion-page">
 
-  <!-- SETUP OVERLAY -->
   <div id="setup-overlay" class="overlay active">
     <div class="overlay-box">
       <div class="logo-mark">◉</div>
@@ -25,10 +24,6 @@
         <input id="room-input" type="text" maxlength="8" placeholder="ej. SALA01" autocomplete="off" spellcheck="false" />
       </div>
 
-      <p class="companion-help">
-        Introduce el código de sala de la persona cuyo trayecto quieres visualizar.
-      </p>
-
       <div class="setup-actions">
         <button id="join-btn" class="btn-primary">UNIRSE COMO ACOMPAÑANTE</button>
         <a href="/home.html" class="btn-ghost">← VOLVER</a>
@@ -36,19 +31,15 @@
     </div>
   </div>
 
-  <!-- COMPANION UI -->
   <div id="comp-ui" class="hidden">
-
     <header class="status-bar">
       <span id="conn-dot" class="dot dot-off"></span>
       <span id="conn-label">Desconectado</span>
       <span class="room-tag" id="room-tag"></span>
-      <span id="nav-status-badge" class="nav-badge">NAV OFFLINE</span>
       <button id="exit-btn" class="btn-stop">← SALIR</button>
     </header>
 
     <main class="companion-main">
-
       <section class="comp-card direction-card">
         <h2 class="card-title">PRÓXIMA INDICACIÓN</h2>
         <div id="comp-arrow" class="comp-arrow">—</div>
@@ -61,7 +52,6 @@
       </section>
 
       <div class="comp-grid">
-
         <section class="comp-card">
           <h2 class="card-title">POSICIÓN</h2>
           <div class="comp-coord"><span class="coord-lbl">LAT</span><span id="c-lat">—</span></div>
@@ -75,14 +65,12 @@
           <div id="state-wrong" class="state-indicator state-off">RUTA ERRÓNEA</div>
           <div id="state-arrived" class="state-indicator state-off">LLEGÓ</div>
         </section>
-
       </div>
 
       <section class="comp-card log-card">
         <h2 class="card-title">REGISTRO DE EVENTOS</h2>
         <ul id="event-log" class="event-log"></ul>
       </section>
-
     </main>
   </div>
 

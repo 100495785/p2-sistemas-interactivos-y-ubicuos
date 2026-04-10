@@ -4,7 +4,6 @@
 
 "use strict";
 
-// ── State ──────────────────────────────────────────────────────────────────
 const state = {
   roomId: null,
   destLat: null,
@@ -18,6 +17,7 @@ const state = {
   stopTimer: null,
   isStopped: false,
   isListening: false,
+  isSpeaking: false,
   hapticEnabled: true,
 
   socket: null,
@@ -25,9 +25,6 @@ const state = {
 
   wrongCounter: 0,
   lastDistance: null,
-
-  lastInteractionAt: 0,
-  visualTimeout: null,
 
   routeStarted: false,
   previewSteps: [],
@@ -37,7 +34,6 @@ const state = {
 
   isRoutePaused: false,
 
-  // Routing real con OSRM
   routeData: null,
   routeCoords: [],
   routeSteps: [],
@@ -45,15 +41,13 @@ const state = {
   isFetchingRoute: false,
   hasInitialRoute: false,
 
-  // Shake gesture
   motionListenerAttached: false,
   lastMotionMagnitude: null,
-  shakeCount: 0,
-  lastShakeAt: 0,
   shakeCooldownUntil: 0,
+
+  speechSynthUtterance: null,
 };
 
-// ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
 const setupOverlay              = $("setup-overlay");
@@ -76,6 +70,7 @@ const beginRouteBtn             = $("begin-route-btn");
 const stopBtn                   = $("stop-btn");
 const routeBackBtn              = $("route-back-btn");
 const resumeBtn                 = $("resume-btn");
+const finishBtn                 = $("finish-btn");
 
 const connDot                   = $("conn-dot");
 const connLabel                 = $("conn-label");
@@ -89,12 +84,12 @@ const alertBanner               = $("alert-banner");
 const latVal                    = $("lat-val");
 const lngVal                    = $("lng-val");
 const distVal                   = $("dist-val");
+
+const voiceFabWrapper           = $("voice-fab-wrapper");
 const voiceBtn                  = $("voice-btn");
 
 const pillGps                   = $("pill-gps");
 const pillVoice                 = $("pill-voice");
-const pillHaptic                = $("pill-haptic");
-const pillVisual                = $("pill-visual");
 
 const manualFields              = $("manual-destination-fields");
 const toggleManualBtn           = $("toggle-manual-btn");
@@ -105,20 +100,16 @@ const previewDestinationName    = $("preview-destination-name");
 const previewDestinationCoords  = $("preview-destination-coords");
 const previewSteps              = $("preview-steps");
 
-// Visual mode overlay
-const visualOverlay = createVisualOverlay();
-
-// ── Direction config ───────────────────────────────────────────────────────
 const DIRECTIONS = {
   LEFT:            { arrow: "←", label: "GIRA A LA IZQUIERDA", vibration: [300] },
   RIGHT:           { arrow: "→", label: "GIRA A LA DERECHA",   vibration: [300, 200, 300] },
-  STRAIGHT:        { arrow: "↑", label: "CONTINÚA RECTO",      vibration: [] },
+  STRAIGHT:        { arrow: "↑", label: "CONTINÚA RECTO",      vibration: [120] },
   ARRIVED:         { arrow: "⬡", label: "HAS LLEGADO",         vibration: [650] },
   WRONG_DIRECTION: { arrow: "✕", label: "RUTA ERRÓNEA",        vibration: [100, 100, 100, 100, 100] },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS — FIELD ERRORS
+// HELPERS — ERRORS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function setFieldError(inputEl, errorEl, message) {
@@ -161,8 +152,27 @@ function updateFooterDestinationInfo() {
   if (lngVal) lngVal.textContent = state.destLng != null ? state.destLng.toFixed(5) : "—";
 }
 
+function setVoiceUiListening(listening) {
+  if (listening) {
+    voiceBtn?.classList.add("listening");
+    voiceFabWrapper?.classList.add("voice-active");
+    setPill(pillVoice, true);
+  } else {
+    voiceBtn?.classList.remove("listening");
+    voiceFabWrapper?.classList.remove("voice-active");
+    setPill(pillVoice, false);
+  }
+}
+
+function stopSpeechIfAny() {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  state.isSpeaking = false;
+  state.speechSynthUtterance = null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SETUP — DESTINOS
+// DESTINOS
 // ─────────────────────────────────────────────────────────────────────────────
 
 presetButtons.forEach((btn) => {
@@ -211,23 +221,13 @@ if (toggleManualBtn) {
   });
 }
 
-if (roomInput) {
-  roomInput.addEventListener("input", () => clearFieldError(roomInput, roomError));
-}
-if (destLat) {
-  destLat.addEventListener("input", () => clearFieldError(destLat, destLatError));
-}
-if (destLng) {
-  destLng.addEventListener("input", () => clearFieldError(destLng, destLngError));
-}
+if (roomInput) roomInput.addEventListener("input", () => clearFieldError(roomInput, roomError));
+if (destLat) destLat.addEventListener("input", () => clearFieldError(destLat, destLatError));
+if (destLng) destLng.addEventListener("input", () => clearFieldError(destLng, destLngError));
 
 function getHasSelectedPreset() {
   return [...presetButtons].some(btn => btn.classList.contains("selected"));
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VALIDACIÓN DE DESTINO
-// ─────────────────────────────────────────────────────────────────────────────
 
 function validateAndResolveDestination() {
   clearFieldError(destLat, destLatError);
@@ -243,7 +243,6 @@ function validateAndResolveDestination() {
   const hasAnyManual = hasManualLat || hasManualLng;
   const hasFullManual = hasManualLat && hasManualLng;
 
-  // Si hay manual completo, tiene prioridad
   if (hasFullManual) {
     const lat = parseFloat(latValue);
     const lng = parseFloat(lngValue);
@@ -272,19 +271,13 @@ function validateAndResolveDestination() {
     return true;
   }
 
-  // Si hay una sola manual rellena, error
   if (hasAnyManual && !hasFullManual) {
-    if (!hasManualLat) {
-      setFieldError(destLat, destLatError, "Falta completar la latitud.");
-    }
-    if (!hasManualLng) {
-      setFieldError(destLng, destLngError, "Falta completar la longitud.");
-    }
+    if (!hasManualLat) setFieldError(destLat, destLatError, "Falta completar la latitud.");
+    if (!hasManualLng) setFieldError(destLng, destLngError, "Falta completar la longitud.");
     showDestinationError("Completa ambas coordenadas manuales o usa un destino predefinido.");
     return false;
   }
 
-  // Si no hay manual, vale el preset si existe
   if (hasPreset && state.destLat != null && state.destLng != null) {
     return true;
   }
@@ -294,7 +287,7 @@ function validateAndResolveDestination() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SETUP — CONFIRMAR DESTINO
+// SETUP
 // ─────────────────────────────────────────────────────────────────────────────
 
 startBtn.addEventListener("click", () => {
@@ -309,9 +302,7 @@ startBtn.addEventListener("click", () => {
 
   state.roomId = room;
 
-  if (!validateAndResolveDestination()) {
-    return;
-  }
+  if (!validateAndResolveDestination()) return;
 
   buildPreviewSteps();
   showPreviewScreen();
@@ -338,7 +329,6 @@ beginRouteBtn.addEventListener("click", () => {
   initSocket();
   initGeolocation();
   initVoiceRecognition();
-  initVisibilityDetection();
   initDeviceMotion();
 });
 
@@ -346,20 +336,20 @@ stopBtn.addEventListener("click", () => {
   pauseRoute("manual");
 });
 
-if (resumeBtn) {
-  resumeBtn.addEventListener("click", () => {
-    resumeRoute("manual");
-  });
-}
+resumeBtn?.addEventListener("click", () => {
+  resumeRoute("manual");
+});
 
-if (routeBackBtn) {
-  routeBackBtn.addEventListener("click", () => {
-    leaveRouteAndGoToSetup();
-  });
-}
+finishBtn?.addEventListener("click", () => {
+  window.location.href = "/home.html";
+});
+
+routeBackBtn?.addEventListener("click", () => {
+  leaveRouteAndGoToSetup();
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PREVIEW SCREEN
+// PREVIEW
 // ─────────────────────────────────────────────────────────────────────────────
 
 function showPreviewScreen() {
@@ -376,12 +366,11 @@ function showPreviewScreen() {
 function buildPreviewSteps() {
   state.previewSteps = [
     "La ruta peatonal se calculará automáticamente al iniciar.",
-    "La app seguirá calles reales en lugar de una dirección global simple.",
     "Una vibración indicará giro a la izquierda.",
     "Dos vibraciones indicarán giro a la derecha.",
     "Si te detienes 5 segundos, la indicación se repetirá.",
-    "Puedes decir: “repite”, “pausa ruta”, “reanudar ruta” o “cuánto falta”.",
-    "Un doble shake del móvil pausará o reanudará la ruta.",
+    "Botón de voz o shake para hablarle a la app.",
+    "Puedes decir: “repite”, “pausa ruta”, “parar”, “reanudar ruta”, “seguir”, “cuánto falta” o “cuánto queda”.",
     "Si te sales de la ruta, la app recalculará y avisará por voz.",
     "Una vibración larga indicará llegada al destino."
   ];
@@ -399,7 +388,7 @@ function renderPreviewSteps() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PAUSE / RESUME / VOLVER
+// PAUSE / RESUME
 // ─────────────────────────────────────────────────────────────────────────────
 
 function pauseRoute(source = "manual") {
@@ -407,44 +396,27 @@ function pauseRoute(source = "manual") {
 
   state.isRoutePaused = true;
   stopGeolocationPolling();
-
   clearTimeout(state.stopTimer);
+  stopSpeechIfAny();
 
-  if (pauseOverlay) {
-    pauseOverlay.classList.remove("hidden");
-  }
-
+  pauseOverlay?.classList.remove("hidden");
   emit("STOPPED", { timestamp: Date.now(), paused: true, source });
-
-  if (source === "voice") {
-    speak("Ruta pausada.");
-  } else if (source === "shake") {
-    speak("Ruta pausada por gesto.");
-  }
 }
 
 function resumeRoute(source = "manual") {
   if (!state.isRoutePaused) return;
 
   state.isRoutePaused = false;
-
-  if (pauseOverlay) {
-    pauseOverlay.classList.add("hidden");
-  }
+  pauseOverlay?.classList.add("hidden");
 
   initGeolocation();
   emit("MOVING", { timestamp: Date.now(), resumed: true, source });
-
-  if (source === "voice") {
-    speak("Ruta reanudada.");
-  } else if (source === "shake") {
-    speak("Ruta reanudada por gesto.");
-  }
 }
 
 function leaveRouteAndGoToSetup() {
   stopGeolocationPolling();
   clearTimeout(state.stopTimer);
+  stopSpeechIfAny();
 
   if (state.socket) {
     state.socket.disconnect();
@@ -452,9 +424,7 @@ function leaveRouteAndGoToSetup() {
   }
 
   if (state.recognition) {
-    try {
-      state.recognition.stop();
-    } catch (_) {}
+    try { state.recognition.stop(); } catch (_) {}
   }
 
   state.isRoutePaused = false;
@@ -472,13 +442,11 @@ function leaveRouteAndGoToSetup() {
   state.lastDistance = null;
   state.wrongCounter = 0;
   state.lastMotionMagnitude = null;
-  state.shakeCount = 0;
-  state.lastShakeAt = 0;
   state.shakeCooldownUntil = 0;
+  state.isListening = false;
 
-  if (pauseOverlay) {
-    pauseOverlay.classList.add("hidden");
-  }
+  pauseOverlay?.classList.add("hidden");
+  setVoiceUiListening(false);
 
   navUi.classList.add("hidden");
   previewScreen.classList.add("hidden");
@@ -494,7 +462,7 @@ function leaveRouteAndGoToSetup() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SOCKET.IO
+// SOCKET
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initSocket() {
@@ -535,12 +503,10 @@ function emit(event, data) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GEOLOCATION — POLLING CADA 5 SEGUNDOS
+// GEOLOCATION
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initGeolocation() {
-  console.log("Intentando iniciar geolocalización...");
-
   if (!navigator.geolocation) {
     showAlert("Geolocalización no disponible", false);
     return;
@@ -549,11 +515,7 @@ function initGeolocation() {
   if (state.isPollingGps) return;
 
   requestCurrentPosition();
-
-  state.gpsIntervalId = setInterval(() => {
-    requestCurrentPosition();
-  }, 5000);
-
+  state.gpsIntervalId = setInterval(requestCurrentPosition, 5000);
   state.isPollingGps = true;
 }
 
@@ -582,23 +544,12 @@ function requestCurrentPosition() {
 }
 
 async function onPosition(pos) {
-  if (state.isRoutePaused) return;
-
-  console.log(
-    "GPS OK:",
-    pos.coords.latitude,
-    pos.coords.longitude,
-    "accuracy:",
-    pos.coords.accuracy,
-    "time:",
-    new Date(pos.timestamp).toLocaleTimeString()
-  );
+  if (state.isRoutePaused || state.isListening) return;
 
   const { latitude: lat, longitude: lng } = pos.coords;
   state.currentPos = { lat, lng };
 
   setPill(pillGps, true);
-
   updateFooterDestinationInfo();
 
   const dist = haversine(lat, lng, state.destLat, state.destLng);
@@ -646,7 +597,7 @@ async function onPosition(pos) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ROUTING — OSRM
+// ROUTING
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
@@ -688,12 +639,6 @@ async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
         name: state.selectedDestinationName
       },
       timestamp: Date.now()
-    });
-
-    console.log("Ruta OSRM cargada:", {
-      puntos: state.routeCoords.length,
-      steps: state.routeSteps.length,
-      distance: route.distance
     });
   } catch (error) {
     console.error("Error obteniendo ruta OSRM:", error);
@@ -738,7 +683,6 @@ function getDirectionFromCurrentRouteStep(distToDestination) {
   const type = (maneuver.type || "").toLowerCase();
 
   if (type === "arrive") return "ARRIVED";
-
   if (modifier.includes("left")) return "LEFT";
   if (modifier.includes("right")) return "RIGHT";
 
@@ -755,13 +699,11 @@ function isOffRoute(lat, lng) {
     if (d < minDist) minDist = d;
   }
 
-  console.log("Distancia mínima a la ruta:", Math.round(minDist), "m");
-
   return minDist > 35;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FALLBACK — LÓGICA ANTIGUA SI FALLA OSRM
+// FALLBACK
 // ─────────────────────────────────────────────────────────────────────────────
 
 function detectWrongDirectionFallback(currentDist) {
@@ -772,11 +714,8 @@ function detectWrongDirectionFallback(currentDist) {
 
   const increased = currentDist > state.lastDistance + 8;
 
-  if (increased) {
-    state.wrongCounter++;
-  } else {
-    state.wrongCounter = 0;
-  }
+  if (increased) state.wrongCounter++;
+  else state.wrongCounter = 0;
 
   state.lastDistance = currentDist;
 
@@ -805,14 +744,11 @@ function calcDirectionFallback(lat, lng, dLat, dLng, dist) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// APLICAR DIRECCIÓN
+// DIRECCIONES
 // ─────────────────────────────────────────────────────────────────────────────
 
 function applyDirection(dir, force = false) {
-  if (state.isRoutePaused) return;
-
-  console.log("DIRECCIÓN:", dir, "force:", force);
-
+  if (state.isRoutePaused || state.isListening) return;
   if (dir === state.lastDirection && !force) return;
 
   state.lastDirection = dir;
@@ -820,9 +756,7 @@ function applyDirection(dir, force = false) {
   const cfg = DIRECTIONS[dir] || DIRECTIONS.STRAIGHT;
   setArrow(cfg.arrow, cfg.label);
 
-  if (state.hapticEnabled) {
-    vibrate(cfg.vibration);
-  }
+  vibrate(cfg.vibration);
 
   emit("NEXT_DIRECTION", {
     direction: dir,
@@ -840,13 +774,16 @@ function applyDirection(dir, force = false) {
   }
 }
 
-function repeatLastIndication() {
-  if (!state.lastDirection || state.isRoutePaused) return;
-  applyDirection(state.lastDirection, true);
+function repeatLastIndicationImmediate() {
+  if (!state.lastDirection || state.isListening) return;
+
+  const cfg = DIRECTIONS[state.lastDirection] || DIRECTIONS.STRAIGHT;
+  setArrow(cfg.arrow, cfg.label);
+  vibrate(cfg.vibration);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STOP DETECTION
+// STOP
 // ─────────────────────────────────────────────────────────────────────────────
 
 function onMovementDetected() {
@@ -860,17 +797,16 @@ function onMovementDetected() {
   state.stopTimer = setTimeout(() => {
     state.isStopped = true;
     emit("STOPPED", { timestamp: Date.now() });
-    repeatLastIndication();
+    repeatLastIndicationImmediate();
   }, 5000);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DEVICE MOTION + SHAKE
+// SHAKE PARA VOZ
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initDeviceMotion() {
   if (state.motionListenerAttached) return;
-
   state.motionListenerAttached = true;
 
   window.addEventListener("devicemotion", (e) => {
@@ -880,20 +816,17 @@ function initDeviceMotion() {
     const x = acc.x || 0;
     const y = acc.y || 0;
     const z = acc.z || 0;
-
     const magnitude = Math.sqrt(x * x + y * y + z * z);
 
-    detectShake(magnitude);
+    detectShakeForVoice(magnitude);
 
-    if (state.isRoutePaused) return;
-
-    if (magnitude > 11.5) {
+    if (!state.isRoutePaused && !state.isListening && magnitude > 11.5) {
       onMovementDetected();
     }
   });
 }
 
-function detectShake(magnitude) {
+function detectShakeForVoice(magnitude) {
   const now = Date.now();
 
   if (state.lastMotionMagnitude == null) {
@@ -905,37 +838,17 @@ function detectShake(magnitude) {
   state.lastMotionMagnitude = magnitude;
 
   if (now < state.shakeCooldownUntil) return;
-
-  // Umbral alto para evitar confundirlo con caminar normal
   if (delta < 14) return;
 
-  if (now - state.lastShakeAt > 900) {
-    state.shakeCount = 0;
-  }
-
-  state.shakeCount += 1;
-  state.lastShakeAt = now;
-
-  // Doble shake para alternar pausa/reanudación
-  if (state.shakeCount >= 2) {
-    state.shakeCount = 0;
-    state.shakeCooldownUntil = now + 2200;
-
-    if (state.isRoutePaused) {
-      resumeRoute("shake");
-    } else {
-      pauseRoute("shake");
-    }
-  }
+  state.shakeCooldownUntil = now + 2500;
+  startVoiceRecognition();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VOICE RECOGNITION
+// VOZ
 // ─────────────────────────────────────────────────────────────────────────────
 
 function initVoiceRecognition() {
-  if (state.recognition) return;
-
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
@@ -944,10 +857,19 @@ function initVoiceRecognition() {
     return;
   }
 
+  if (state.recognition) return;
+
   const rec = new SR();
   rec.lang = "es-ES";
   rec.continuous = false;
   rec.interimResults = false;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => {
+    state.isListening = true;
+    setVoiceUiListening(true);
+    stopSpeechIfAny();
+  };
 
   rec.onresult = (e) => {
     const transcript = e.results[0][0].transcript.toLowerCase().trim();
@@ -956,32 +878,41 @@ function initVoiceRecognition() {
 
   rec.onend = () => {
     state.isListening = false;
-    voiceBtn.classList.remove("listening");
-    setPill(pillVoice, true);
+    setVoiceUiListening(false);
   };
 
-  rec.onerror = (e) => {
-    console.warn("VOZ error:", e.error);
+  rec.onerror = () => {
     state.isListening = false;
-    voiceBtn.classList.remove("listening");
-    setPill(pillVoice, false);
+    setVoiceUiListening(false);
   };
 
   state.recognition = rec;
-  setPill(pillVoice, true);
+  setPill(pillVoice, false);
 
-  voiceBtn.addEventListener("click", () => {
-    activateVisualModeTemporarily();
-
-    if (state.isListening) {
-      rec.stop();
-    } else {
-      rec.start();
-      state.isListening = true;
-      voiceBtn.classList.add("listening");
-      setPill(pillVoice, true);
-    }
+  voiceBtn?.addEventListener("click", () => {
+    toggleVoiceRecognition();
   });
+}
+
+function toggleVoiceRecognition() {
+  if (!state.recognition) return;
+
+  if (state.isListening) {
+    try {
+      state.recognition.stop();
+    } catch (_) {}
+    return;
+  }
+
+  startVoiceRecognition();
+}
+
+function startVoiceRecognition() {
+  if (!state.recognition || state.isListening) return;
+
+  try {
+    state.recognition.start();
+  } catch (_) {}
 }
 
 function normalizeSpeech(text) {
@@ -1004,41 +935,38 @@ function getRemainingDistanceText() {
     state.destLng
   );
 
-  if (dist >= 1000) {
-    return `${(dist / 1000).toFixed(1)} kilómetros`;
-  }
-
+  if (dist >= 1000) return `${(dist / 1000).toFixed(1)} kilómetros`;
   return `${Math.round(dist)} metros`;
 }
 
 async function handleVoiceCommand(text) {
   const normalized = normalizeSpeech(text);
 
+  if (!normalized) return;
+
   emit("VOICE_COMMAND", {
     command: text,
     timestamp: Date.now()
   });
 
-  if (normalized.includes("repite") || normalized.includes("repiteme") || normalized.includes("repeat")) {
-    if (state.isRoutePaused) {
-      speak("La ruta está en pausa.");
-      return;
-    }
-    repeatLastIndication();
-    speak("Repitiendo indicación.");
+  if (
+    normalized.includes("repite") ||
+    normalized.includes("repiteme") ||
+    normalized.includes("repeat")
+  ) {
+    if (state.isRoutePaused) return;
+    repeatLastIndicationImmediate();
     return;
   }
 
   if (
     normalized.includes("pausa ruta") ||
-    normalized === "pausa" ||
     normalized.includes("pausar ruta") ||
-    normalized.includes("pausar")
+    normalized === "pausa" ||
+    normalized === "parar" ||
+    normalized.includes("parar ruta")
   ) {
-    if (state.isRoutePaused) {
-      speak("La ruta ya está pausada.");
-      return;
-    }
+    if (state.isRoutePaused) return;
     pauseRoute("voice");
     return;
   }
@@ -1046,38 +974,33 @@ async function handleVoiceCommand(text) {
   if (
     normalized.includes("reanudar ruta") ||
     normalized.includes("reanuda ruta") ||
-    normalized.includes("reanudar") ||
     normalized.includes("continuar ruta") ||
-    normalized === "continuar"
+    normalized.includes("continua ruta") ||
+    normalized === "continuar" ||
+    normalized === "continua" ||
+    normalized === "sigue" ||
+    normalized === "seguir" ||
+    normalized.includes("seguir ruta")
   ) {
-    if (!state.isRoutePaused) {
-      speak("La ruta ya está activa.");
-      return;
-    }
+    if (!state.isRoutePaused) return;
     resumeRoute("voice");
     return;
   }
 
   if (
     normalized.includes("cuanto falta") ||
+    normalized.includes("cuanto queda") ||
     normalized.includes("cuanta distancia") ||
-    normalized.includes("distancia") ||
-    normalized.includes("cuanto queda")
+    normalized === "distancia"
   ) {
     const remaining = getRemainingDistanceText();
-    if (!remaining) {
-      speak("Todavía no tengo tu posición.");
-      return;
-    }
+    if (!remaining) return;
     speak(`Quedan ${remaining}.`);
     return;
   }
 
   if (normalized.includes("perdido") || normalized.includes("ayuda")) {
-    if (state.isRoutePaused) {
-      speak("La ruta está en pausa.");
-      return;
-    }
+    if (state.isRoutePaused) return;
 
     speak("Voy a recalcular la ruta.");
     if (state.currentPos) {
@@ -1093,118 +1016,45 @@ async function handleVoiceCommand(text) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VISUAL / HAPTIC FEEDBACK MODE
-// ─────────────────────────────────────────────────────────────────────────────
-
-function initVisibilityDetection() {
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState !== "visible") {
-      activateHapticMode();
-    }
-  });
-
-  activateHapticMode();
-}
-
-function activateVisualModeTemporarily() {
-  state.lastInteractionAt = Date.now();
-  state.hapticEnabled = false;
-
-  setPill(pillHaptic, false);
-  setPill(pillVisual, true);
-  showVisualMode();
-
-  clearTimeout(state.visualTimeout);
-  state.visualTimeout = setTimeout(() => {
-    activateHapticMode();
-  }, 5000);
-}
-
-function activateHapticMode() {
-  state.hapticEnabled = true;
-  setPill(pillHaptic, true);
-  setPill(pillVisual, false);
-  hideVisualMode();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VISUAL OVERLAY
-// ─────────────────────────────────────────────────────────────────────────────
-
-function createVisualOverlay() {
-  const el = document.createElement("div");
-  el.id = "visual-mode-overlay";
-  el.innerHTML = `
-    <div class="visual-arrow" id="v-arrow">—</div>
-    <div class="visual-text" id="v-text">Esperando indicación...</div>
-    <div class="visual-sub">MODO VISUAL ACTIVO</div>
-  `;
-  document.body.appendChild(el);
-  return el;
-}
-
-function showVisualMode() {
-  visualOverlay.classList.add("active");
-  updateVisualMode();
-}
-
-function hideVisualMode() {
-  visualOverlay.classList.remove("active");
-}
-
-function updateVisualMode() {
-  if (!state.lastDirection) return;
-
-  const cfg = DIRECTIONS[state.lastDirection];
-  if (!cfg) return;
-
-  document.getElementById("v-arrow").textContent = cfg.arrow;
-  document.getElementById("v-text").textContent = cfg.label;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VIBRATION
+// UI / VOZ / VIBRACIÓN
 // ─────────────────────────────────────────────────────────────────────────────
 
 function vibrate(pattern) {
-  console.log("VIBRAR:", pattern, "hapticEnabled:", state.hapticEnabled);
-
   if (!state.hapticEnabled) return;
-
-  if (!navigator.vibrate) {
-    console.warn("Vibration API no disponible");
-    return;
-  }
-
+  if (!navigator.vibrate) return;
   if (!pattern || pattern.length === 0) return;
+  if (state.isSpeaking || state.isListening) return;
 
   try {
     navigator.vibrate(0);
     navigator.vibrate(pattern);
-  } catch (error) {
-    console.warn("Error al vibrar:", error);
-  }
+  } catch (_) {}
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SPEECH SYNTHESIS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function speak(text) {
   if (!window.speechSynthesis) return;
 
-  window.speechSynthesis.cancel();
+  stopSpeechIfAny();
 
   const utt = new SpeechSynthesisUtterance(text);
   utt.lang = "es-ES";
   utt.rate = 0.9;
 
+  state.isSpeaking = true;
+  state.speechSynthUtterance = utt;
+
+  utt.onend = () => {
+    state.isSpeaking = false;
+    state.speechSynthUtterance = null;
+  };
+
+  utt.onerror = () => {
+    state.isSpeaking = false;
+    state.speechSynthUtterance = null;
+  };
+
   window.speechSynthesis.speak(utt);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UI HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function setArrow(symbol, label) {
   arrowIcon.textContent = symbol;
@@ -1213,8 +1063,6 @@ function setArrow(symbol, label) {
   arrowIcon.classList.remove("pulse-anim");
   void arrowIcon.offsetWidth;
   arrowIcon.classList.add("pulse-anim");
-
-  updateVisualMode();
 }
 
 function showAlert(msg, isError = true) {

@@ -12,7 +12,6 @@
 </head>
 <body class="navigator-page">
 
-  <!-- SETUP OVERLAY -->
   <div id="setup-overlay" class="overlay active">
     <div class="overlay-box">
       <div class="logo-mark">◈</div>
@@ -77,7 +76,6 @@
     </div>
   </div>
 
-  <!-- PRE-ROUTE SCREEN -->
   <div id="preview-screen" class="hidden preview-screen">
     <header class="status-bar">
       <span class="room-tag" id="preview-room-tag"></span>
@@ -102,9 +100,7 @@
     </main>
   </div>
 
-  <!-- MAIN NAVIGATOR UI -->
   <div id="nav-ui" class="hidden">
-
     <header class="status-bar route-status-bar">
       <span id="conn-dot" class="dot dot-off"></span>
       <span id="conn-label">Desconectado</span>
@@ -131,37 +127,28 @@
         <div class="pill" id="pill-voice">
           <span class="pill-dot"></span> VOZ
         </div>
-        <div class="pill" id="pill-haptic">
-          <span class="pill-dot"></span> HÁPTICO
-        </div>
-        <div class="pill" id="pill-visual">
-          <span class="pill-dot"></span> VISUAL
-        </div>
       </div>
     </main>
 
     <footer class="coords-footer">
-      <div class="coord-item"><span class="coord-lbl">LAT DEST</span><span id="lat-val">—</span></div>
-      <div class="coord-item"><span class="coord-lbl">LNG DEST</span><span id="lng-val">—</span></div>
-      <div class="coord-item"><span class="coord-lbl">DIST</span><span id="dist-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">DESTINO X</span><span id="lat-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">DESTINO Y</span><span id="lng-val">—</span></div>
+      <div class="coord-item"><span class="coord-lbl">FALTA</span><span id="dist-val">—</span></div>
     </footer>
 
-    <div class="voice-fab-wrapper">
-      <button id="voice-btn" class="voice-fab" title="Comando de voz">🎙</button>
+    <div id="voice-fab-wrapper" class="voice-fab-wrapper">
+      <button id="voice-btn" class="voice-fab" type="button" title="Activar voz">🎙</button>
       <span class="voice-fab-label">VOCALIZA</span>
     </div>
   </div>
 
-  <!-- PAUSE OVERLAY -->
   <div id="pause-overlay" class="route-pause-overlay hidden">
     <div class="route-pause-box">
       <div class="route-pause-icon">⏸</div>
-      <h2 class="route-pause-title">RUTA PARADA</h2>
-      <p class="route-pause-text">
-        La navegación está en pausa. Puedes reanudar el recorrido cuando quieras.
-      </p>
+      <h2 class="route-pause-title">RUTA PAUSADA</h2>
       <div class="route-pause-actions">
         <button id="resume-btn" class="btn-primary" type="button">REANUDAR</button>
+        <button id="finish-btn" class="btn-ghost" type="button">FINALIZAR</button>
       </div>
     </div>
   </div>
