@@ -16,6 +16,5 @@ Autoras: Alicia Mei García Morín, Laura Guerrero Canales y Ana Grima Vázquez 
 ## Instalación
 
 ```bash
-cd haptic-nav
 npm install
 npm start

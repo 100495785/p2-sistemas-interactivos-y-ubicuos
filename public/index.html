@@ -1,6 +1,9 @@
+<!-- HapticNav — index.html -->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- Metadatos y enlaces a estilos usados en la app -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -11,9 +14,12 @@
   <link rel="stylesheet" href="index.css" />
 </head>
 <body class="navigator-page">
+  <!-- Vista navegador principal -->
 
   <div id="setup-overlay" class="overlay active">
+    <!-- Overlay de configuración y selección de destino -->
     <div class="overlay-box">
+      <!-- Encabezado con marca y subtítulo -->
       <div class="logo-mark">◈</div>
       <h1 class="brand">HAPTICNAV</h1>
       <p class="brand-sub">NAVEGACIÓN SIN MIRAR</p>
@@ -27,6 +33,7 @@
       <div class="field-group">
         <label>DESTINO</label>
 
+        <!-- Destinos predefinidos para selección rápida -->
         <div class="preset-grid">
           <button class="preset-btn" type="button" data-lat="40.55166" data-lng="-4.01202">
             Polideportivo Colmenarejo
@@ -55,6 +62,7 @@
         </button>
       </div>
 
+      <!-- Campos para introducir coordenadas manuales -->
       <div id="manual-destination-fields" class="manual-fields hidden">
         <div class="field-group">
           <label for="dest-lat">LATITUD DESTINO</label>
@@ -69,6 +77,7 @@
         </div>
       </div>
 
+      <!-- Botones de acción -->
       <div class="setup-actions">
         <button id="start-btn" class="btn-primary">CONFIRMAR DESTINO</button>
         <a href="/home.html" class="btn-ghost">← VOLVER</a>
@@ -77,6 +86,7 @@
   </div>
 
   <div id="preview-screen" class="hidden preview-screen">
+    <!-- Pantalla de previsualización de destino -->
     <header class="status-bar">
       <span class="room-tag" id="preview-room-tag"></span>
       <button id="back-btn" class="btn-stop">← VOLVER</button>
@@ -101,6 +111,7 @@
   </div>
 
   <div id="nav-ui" class="hidden">
+    <!-- Interfaz de navegación en tiempo real -->
     <header class="status-bar route-status-bar">
       <span id="conn-dot" class="dot dot-off"></span>
       <span id="conn-label">Desconectado</span>
@@ -111,6 +122,7 @@
       </div>
     </header>
 
+    <!-- Panel de dirección y flecha principal -->
     <main class="direction-panel">
       <div id="alert-banner" class="alert-banner hidden"></div>
 
@@ -120,6 +132,7 @@
         <div id="distance-label" class="distance-label"></div>
       </div>
 
+      <!-- Indicadores de estado y opciones rápidas -->
       <div class="pills-row">
         <div class="pill" id="pill-gps">
           <span class="pill-dot"></span> GPS
@@ -135,6 +148,7 @@
       <div class="coord-item"><span class="coord-lbl">TIEMPO</span><span id="time-val">—</span></div>
     </footer>
 
+    <!-- Contenedor del botón de voz flotante y etiqueta -->
     <div id="voice-fab-wrapper" class="voice-fab-wrapper">
       <button id="voice-btn" class="voice-fab" type="button" title="Activar voz">🎙</button>
       <span class="voice-fab-label">VOCALIZA</span>
@@ -142,6 +156,7 @@
   </div>
 
   <div id="pause-overlay" class="route-pause-overlay hidden">
+    <!-- Overlay de pausa de ruta -->
     <div class="route-pause-box">
       <div class="route-pause-icon">⏸</div>
       <h2 class="route-pause-title">RUTA PAUSADA</h2>
@@ -153,6 +168,7 @@
   </div>
 
   <div id="recalculating-overlay" class="route-pause-overlay hidden">
+    <!-- Overlay de recálculo de ruta -->
     <div class="route-pause-box">
       <div class="route-pause-icon">↻</div>
       <h2 class="route-pause-title">RECALCULANDO RUTA</h2>
@@ -162,6 +178,7 @@
     </div>
   </div>
 
+  <!-- Scripts: socket y lógica de la app -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
 </body>

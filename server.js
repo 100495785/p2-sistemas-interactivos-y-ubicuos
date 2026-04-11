@@ -223,4 +223,35 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`\n🧭 HapticNav server running → http://localhost:${PORT}`);
+  console.log("\nPara cerrar el servidor: presiona Ctrl+C\n");
 });
+
+// Manejo de salida limpia (Ctrl+C -> SIGINT, y SIGTERM)
+function gracefulShutdown() {
+  console.log("Cerrando servidor de forma segura...\n");
+
+  try {
+    // Cerrar conexiones de Socket.IO
+    if (io) {
+      try { io.close(); } catch (e) { /* ignore */ }
+    }
+
+    // Cerrar servidor HTTP
+    server.close(() => {
+      console.log("Servidor cerrado");
+      process.exit(0);
+    });
+
+    // Forzar cierre si no termina en 5s
+    setTimeout(() => {
+      console.error("Forzando cierre del proceso");
+      process.exit(1);
+    }, 5000);
+  } catch (err) {
+    console.error("Error durante el cierre:", err);
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);

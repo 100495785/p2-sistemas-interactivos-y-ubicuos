@@ -1,6 +1,9 @@
+<!-- HapticNav — companion.html -->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- Metadatos y estilos para la vista acompañante -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HapticNav — Acompañante</title>
@@ -12,8 +15,10 @@
   />
 </head>
 <body class="companion-page">
+  <!-- Vista acompañante principal -->
 
   <div id="setup-overlay" class="overlay active">
+    <!-- Overlay para unir al acompañante -->
     <div class="overlay-box">
       <div class="logo-mark">◉</div>
       <h1 class="brand">HAPTICNAV</h1>
@@ -33,6 +38,7 @@
   </div>
 
   <div id="comp-ui" class="hidden">
+    <!-- Interfaz del acompañante con mapa y estado -->
     <header class="status-bar">
       <span id="conn-dot" class="dot dot-off"></span>
       <span id="conn-label">Desconectado</span>
@@ -47,6 +53,7 @@
         <div class="empty-room-text">No hay nadie en esta sala.</div>
       </section>
 
+      <!-- Panel de indicación principal para el acompañante -->
       <section class="comp-card direction-card">
         <h2 class="card-title">PRÓXIMA INDICACIÓN</h2>
         <div id="comp-arrow" class="comp-arrow">—</div>
@@ -55,6 +62,7 @@
 
       <section class="comp-card">
         <h2 class="card-title">MENSAJES RÁPIDOS</h2>
+        <!-- Botones de envío rápido hacia el navegador -->
         <div class="quick-msg-grid">
           <button class="quick-msg-btn" data-message="Ten cuidado">TEN CUIDADO</button>
           <button class="quick-msg-btn" data-message="Para un momento">PARA UN MOMENTO</button>
@@ -65,6 +73,7 @@
 
       <section class="comp-card">
         <h2 class="card-title">MAPA</h2>
+        <!-- Contenedor del mapa interactivo Leaflet -->
         <div id="map" class="comp-map"></div>
       </section>
 
@@ -84,6 +93,7 @@
         </section>
       </div>
 
+      <!-- Registro de eventos y alertas del acompañante -->
       <section class="comp-card log-card">
         <h2 class="card-title">REGISTRO</h2>
         <ul id="event-log" class="event-log"></ul>
@@ -91,6 +101,7 @@
     </main>
   </div>
 
+  <!-- Leaflet y lógica del acompañante -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="companion.js"></script>
