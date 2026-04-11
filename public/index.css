@@ -1,5 +1,8 @@
 /* HapticNav — index.css */
 
+/* Estilos para la interfaz de navegación y visualización de indicaciones */
+
+/* Layout principal de la vista de navegación */
 .navigator-page #nav-ui {
   display: flex;
   flex-direction: column;
@@ -7,10 +10,12 @@
   height: 100dvh;
 }
 
+/* Barra de estado con indicadores y acciones */
 .route-status-bar {
   justify-content: space-between;
 }
 
+/* Controles del encabezado y acciones rápidas */
 .route-header-actions {
   display: flex;
   align-items: center;
@@ -18,6 +23,7 @@
   margin-left: auto;
 }
 
+/* Panel central que muestra la flecha y la indicación actual */
 .direction-panel {
   flex: 1;
   display: flex;
@@ -30,6 +36,7 @@
   overflow: hidden;
 }
 
+/* Destello sutil detrás del panel para énfasis visual */
 .direction-panel::before {
   content: '';
   position: absolute;
@@ -38,6 +45,7 @@
   pointer-events: none;
 }
 
+/* Banner de alerta para avisos críticos */
 .alert-banner {
   position: absolute;
   top: 0;
@@ -58,6 +66,7 @@
   50% { opacity: .6; }
 }
 
+/* Contenedor de la flecha y etiqueta direccional */
 .arrow-container {
   display: flex;
   flex-direction: column;
@@ -65,6 +74,7 @@
   gap: 14px;
 }
 
+/* Icono flecha grande con efecto de brillo */
 .arrow-icon {
   font-size: 7rem;
   line-height: 1;
@@ -78,12 +88,14 @@
   animation: arrowPulse .4s ease;
 }
 
+/* Animación de pulso usada por la flecha en transiciones */
 @keyframes arrowPulse {
   0% { transform: scale(1); }
   40% { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
 
+/* Texto que describe la maniobra actual */
 .direction-label {
   font-family: var(--font-disp);
   font-size: 1.25rem;
@@ -95,12 +107,14 @@
   line-height: 1.35;
 }
 
+/* Distancia restante hasta la siguiente instrucción */
 .distance-label {
   font-size: 1rem;
   color: var(--amber);
   letter-spacing: .1em;
 }
 
+/* Fila de pastillas informativas */
 .pills-row {
   display: flex;
   gap: 8px;
@@ -108,6 +122,7 @@
   justify-content: center;
 }
 
+/* Pastilla pequeña para opciones y estados */
 .pill {
   display: flex;
   align-items: center;
@@ -132,6 +147,7 @@
   box-shadow: 0 0 6px var(--amber);
 }
 
+/* Indicador circular dentro de la pastilla */
 .pill-dot {
   width: 6px;
   height: 6px;
@@ -140,6 +156,7 @@
   flex-shrink: 0;
 }
 
+/* Pie con coordenadas y datos de navegación */
 .coords-footer {
   display: flex;
   background: var(--bg2);
@@ -166,12 +183,14 @@
   border-right: none;
 }
 
+/* Valor principal dentro del bloque de coordenadas */
 .coord-item span:last-child {
   font-size: .98rem;
   color: var(--text);
   line-height: 1.3;
 }
 
+/* Contenedor del botón de voz flotante */
 .voice-fab-wrapper {
   position: fixed;
   bottom: 86px;
@@ -183,6 +202,7 @@
   z-index: 50;
 }
 
+/* Botón flotante para activar reconocimiento de voz */
 .voice-fab {
   width: 64px;
   height: 64px;
@@ -223,6 +243,7 @@
   color: var(--text-dim);
 }
 
+/* Rejilla de destinos predefinidos */
 .preset-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -270,6 +291,7 @@
   gap: 12px;
 }
 
+/* Vista de previsualización de la ruta */
 .preview-screen {
   display: flex;
   flex-direction: column;
@@ -278,6 +300,7 @@
   background: var(--bg);
 }
 
+/* Contenido desplazable de la pantalla de previsualización */
 .preview-main {
   flex: 1;
   padding: 16px 16px 24px 16px;
@@ -312,6 +335,7 @@
   gap: 10px;
 }
 
+/* Elemento que representa un paso de la ruta en la previsualización */
 .preview-step-item {
   padding: 13px;
   background: var(--bg3);
@@ -335,6 +359,7 @@
   gap: 10px;
 }
 
+/* Overlay usado al pausar la navegación */
 .route-pause-overlay {
   position: fixed;
   inset: 0;
@@ -346,6 +371,7 @@
   background: rgba(10, 10, 12, 0.92);
 }
 
+/* Caja interior del overlay de pausa con acciones */
 .route-pause-box {
   width: 100%;
   max-width: 420px;
@@ -379,6 +405,7 @@
   gap: 12px;
 }
 
+/* Ajustes responsivos para pantallas medianas */
 @media (max-width: 700px) {
   .route-header-actions {
     width: 100%;
@@ -482,6 +509,7 @@
   }
 }
 
+/* Ajustes responsivos para pantallas pequeñas */
 @media (max-width: 400px) {
   .route-header-actions {
     width: 100%;

@@ -1,5 +1,8 @@
 /* HapticNav — companion.css */
 
+/* Estilos para la vista acompañante que muestra mapa y estado del navegador */
+
+/* Layout de la vista companion que ocupa toda la ventana */
 .companion-page #comp-ui {
   display: flex;
   flex-direction: column;
@@ -7,6 +10,7 @@
   height: 100dvh;
 }
 
+/* Contenedor principal con scroll para contenidos del acompañante */
 .companion-main {
   flex: 1;
   overflow-y: auto;
@@ -16,6 +20,7 @@
   gap: 14px;
 }
 
+/* Acciones de configuración y control usadas por el acompañante */
 .setup-actions {
   display: flex;
   flex-direction: column;
@@ -30,6 +35,7 @@
   display: block;
 }
 
+/* Banner que aparece cuando la sala está vacía */
 .empty-room-banner {
   border-color: var(--red);
   background: rgba(255,59,59,.08);
@@ -41,6 +47,7 @@
   line-height: 1.45;
 }
 
+/* Tarjeta que muestra la indicación principal para el acompañante */
 .direction-card {
   display: flex;
   flex-direction: column;
@@ -50,6 +57,7 @@
   text-align: center;
 }
 
+/* Flecha grande usada para la indicación */
 .comp-arrow {
   font-size: 5.5rem;
   line-height: 1;
@@ -66,12 +74,14 @@
   text-align: center;
 }
 
+/* Rejilla de mensajes rápidos para uso del navegador */
 .quick-msg-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
+/* Botones rápidos que envía el acompañante */
 .quick-msg-btn {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -92,12 +102,14 @@
   box-shadow: 0 0 16px rgba(245,166,35,.25);
 }
 
+/* Grid con mapa y paneles de información */
 .comp-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
+/* Contenedor del mapa */
 .comp-map {
   width: 100%;
   height: 260px;
@@ -106,6 +118,7 @@
   border: 1px solid var(--border);
 }
 
+/* Fila con coordenadas y valores asociados */
 .comp-coord {
   display: flex;
   align-items: center;
@@ -118,12 +131,14 @@
   border-bottom: none;
 }
 
+/* Timestamp o texto de soporte pequeño */
 .c-ts {
   margin-top: 10px;
   font-size: .78rem;
   color: var(--text-dim);
 }
 
+/* Indicador de estado (parado, error, llegado) */
 .state-indicator {
   margin-top: 8px;
   padding: 10px 12px;
@@ -159,6 +174,7 @@
   color: var(--green);
 }
 
+/* Tarjeta con registro de eventos del acompañante */
 .log-card {
   min-height: 150px;
 }
@@ -194,11 +210,13 @@
   border-left: 3px solid var(--red);
 }
 
+/* Ajustes visuales del contenedor Leaflet */
 .leaflet-container {
   background: #111;
   font-family: var(--font-mono);
 }
 
+/* Ajustes responsivos para pantallas medianas */
 @media (max-width: 700px) {
   .companion-main {
     padding: 14px;
@@ -265,6 +283,7 @@
   }
 }
 
+/* Ajustes responsivos para pantallas pequeñas */
 @media (max-width: 400px) {
   .comp-arrow {
     font-size: 4.8rem;

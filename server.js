@@ -1,3 +1,5 @@
+/* HapticNav — server.js */
+
 // Servidor Express y Socket.IO: maneja salas y sincronización en tiempo real
 
 const express = require("express");

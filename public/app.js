@@ -1,3 +1,5 @@
+/* HapticNav — app.js */
+
 // Navegador principal: lógica de rutas, geolocalización, voz y feedback háptico
 
 "use strict";

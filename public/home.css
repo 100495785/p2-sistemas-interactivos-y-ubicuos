@@ -1,5 +1,8 @@
 /* HapticNav — home.css */
 
+/* Estilos de la pantalla de inicio y selección de rol del usuario */
+
+/* Contenedor principal centrado y responsivo que ocupa la altura de la ventana */
 .home-container {
   height: 100vh;
   height: 100dvh;
@@ -9,6 +12,7 @@
   padding: 20px;
 }
 
+/* Caja principal con fondo, borde y sombra usada para la selección de rol */
 .home-box {
   width: 100%;
   max-width: 440px;
@@ -23,6 +27,7 @@
   animation: fadeUp .4s ease;
 }
 
+/* Título principal de la pantalla con marca y efecto */
 .home-title {
   font-family: var(--font-disp);
   font-size: 2.05rem;
@@ -34,6 +39,7 @@
   line-height: 1.15;
 }
 
+/* Subtítulo descriptivo en mayúsculas */
 .home-sub {
   text-align: center;
   color: var(--text-dim);
@@ -43,6 +49,7 @@
   line-height: 1.5;
 }
 
+/* Agrupador vertical de botones de rol */
 .role-buttons {
   display: flex;
   flex-direction: column;
@@ -50,6 +57,7 @@
   margin-top: 10px;
 }
 
+/* Botones de rol con estilo llamativo y feedback visual */
 .role-btn {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -76,6 +84,7 @@
   transform: scale(.97);
 }
 
+/* Ajustes para pantallas medianas a pequeñas */
 @media (max-width: 700px) {
   .home-container {
     padding: 16px;
@@ -107,6 +116,7 @@
   }
 }
 
+/* Ajustes para pantallas muy pequeñas */
 @media (max-width: 400px) {
   .home-box {
     padding: 36px 20px;

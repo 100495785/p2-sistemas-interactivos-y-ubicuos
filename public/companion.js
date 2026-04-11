@@ -1,3 +1,5 @@
+/* HapticNav — companion.js */
+
 // Vista acompañante: recibe actualizaciones del navegador principal y muestra el mapa
 
 "use strict";

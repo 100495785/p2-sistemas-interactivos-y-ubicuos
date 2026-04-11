@@ -1,11 +1,12 @@
-/* ═══════════════════════════════════════════════════════
-   HAPTICNAV — Terminal GPS Aesthetic
-   Dark / Amber / Monospace
-═══════════════════════════════════════════════════════ */
+/* HapticNav — style.css */
 
+/* Estilos globales y variables de tema usados en toda la aplicación */
+
+/* Importa las tipografías usadas en toda la app */
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
 :root {
+  /* Variables de tema: colores, fuentes, radios y sombras */
   --bg:        #0a0a0c;
   --bg2:       #10101a;
   --bg3:       #181824;
@@ -23,8 +24,10 @@
   --shadow:    0 0 24px rgba(245,166,35,0.08);
 }
 
+/* Reset y box sizing para comportamiento consistente entre navegadores */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Regla base para html y body, define tipografía y fondo principal */
 html, body {
   height: 100%;
   width: 100%;
@@ -38,6 +41,7 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* Capa visual que añade patrón sutil sobre el fondo de la app */
 body::after {
   content: '';
   position: fixed;
@@ -53,6 +57,7 @@ body::after {
   pointer-events: none;
 }
 
+/* Contenedor overlay usado para modales y pantallas de configuración */
 .overlay {
   position: fixed;
   inset: 0;
@@ -69,6 +74,7 @@ body::after {
 
 .overlay.active { display: flex; }
 
+/* Caja interior del overlay con sombra y padding consistente */
 .overlay-box {
   width: 100%;
   max-width: 440px;
@@ -84,11 +90,13 @@ body::after {
   margin: auto;
 }
 
+/* Animación simple para elevar y desvanecer cajas modales */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Marca gráfica con animación usada en cabeceras y pantallas */
 .logo-mark {
   font-size: 3rem;
   color: var(--amber);
@@ -101,6 +109,7 @@ body::after {
   50%      { opacity: .5; }
 }
 
+/* Estilo del nombre de la aplicación con fuente display y efectos */
 .brand {
   font-family: var(--font-disp);
   font-size: 2rem;
@@ -111,6 +120,7 @@ body::after {
   text-shadow: 0 0 20px rgba(245,166,35,.4);
 }
 
+/* Subtítulo de marca con texto descriptivo en mayúsculas */
 .brand-sub {
   text-align: center;
   color: var(--text-dim);
@@ -120,12 +130,14 @@ body::after {
   line-height: 1.45;
 }
 
+/* Agrupador de campos de formulario con label y input */
 .field-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
+/* Estilo de las etiquetas de formulario en color de acento */
 .field-group label {
   font-size: .82rem;
   letter-spacing: .12em;
@@ -133,6 +145,7 @@ body::after {
   text-transform: uppercase;
 }
 
+/* Inputs de formulario con fondo oscuro y borde sutil */
 .field-group input {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -154,17 +167,20 @@ body::after {
   color: var(--text-dim);
 }
 
+/* Estilos para inputs con error visual */
 .input-error {
   border-color: var(--red) !important;
   box-shadow: 0 0 0 1px rgba(255,59,59,.25);
 }
 
+/* Mensajes de error asociados a campos de formulario */
 .field-error {
   color: var(--red);
   font-size: .88rem;
   line-height: 1.35;
 }
 
+/* Botón primario de acción con color destacado y hover */
 .btn-primary {
   background: var(--amber);
   color: #000;
@@ -183,6 +199,7 @@ body::after {
 .btn-primary:hover  { box-shadow: 0 0 20px rgba(245,166,35,.5); }
 .btn-primary:active { transform: scale(.97); }
 
+/* Botón secundario con borde y estilo neutro */
 .btn-secondary {
   background: transparent;
   border: 1px solid var(--amber-dim);
@@ -200,6 +217,7 @@ body::after {
   color: var(--amber);
 }
 
+/* Botón fantasma para acciones menos importantes */
 .btn-ghost {
   background: transparent;
   border: 1px solid var(--border);
@@ -219,6 +237,7 @@ body::after {
   color: var(--amber);
 }
 
+/* Texto de ayuda o hint utilizado en formularios y pantallas */
 .hint {
   text-align: center;
   font-size: .84rem;
@@ -226,6 +245,7 @@ body::after {
   line-height: 1.6;
 }
 
+/* Barra de estado superior con indicadores y acciones */
 .status-bar {
   display: flex;
   align-items: center;
@@ -238,6 +258,7 @@ body::after {
   flex-shrink: 0;
 }
 
+/* Indicador redondo pequeño usado para estado de conexión */
 .dot {
   width: 9px;
   height: 9px;
@@ -248,6 +269,7 @@ body::after {
 .dot-off { background: var(--text-dim); }
 .dot-on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
 
+/* Etiqueta que muestra el identificador de sala */
 .room-tag {
   margin-left: auto;
   background: var(--bg3);
@@ -274,6 +296,7 @@ body::after {
 
 .btn-stop:hover { background: rgba(255,59,59,.15); }
 
+/* Tarjeta genérica con sombra usada en varias pantallas */
 .comp-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -296,6 +319,7 @@ body::after {
   letter-spacing: .12em;
 }
 
+/* Personalización mínima de scroll para WebKit */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
