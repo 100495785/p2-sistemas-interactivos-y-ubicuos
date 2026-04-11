@@ -1,9 +1,8 @@
-/* ═══════════════════════════════════════════════════════
-   HAPTICNAV — app.js  (Navegador principal)
-═══════════════════════════════════════════════════════ */
+// Navegador principal: lógica de rutas, geolocalización, voz y feedback háptico
 
 "use strict";
 
+// Estado central de la aplicación: variables y flags compartidos
 const state = {
   roomId: null,
   destLat: null,
@@ -111,11 +110,10 @@ const DIRECTIONS = {
 
 const QUICK_MESSAGE_VIBRATION = [120, 80, 120, 80, 120];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS — ERRORS
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== HELPERS — ERRORS ====
 
 function setFieldError(inputEl, errorEl, message) {
+  // Añade marcador visual y texto de error en el formulario
   if (inputEl) inputEl.classList.add("input-error");
   if (errorEl) {
     errorEl.textContent = message;
@@ -124,6 +122,7 @@ function setFieldError(inputEl, errorEl, message) {
 }
 
 function clearFieldError(inputEl, errorEl) {
+  // Quita estilos de error y oculta el mensaje asociado
   if (inputEl) inputEl.classList.remove("input-error");
   if (errorEl) {
     errorEl.textContent = "";
@@ -132,6 +131,7 @@ function clearFieldError(inputEl, errorEl) {
 }
 
 function clearAllFieldErrors() {
+  // Restablece todos los campos de error del formulario
   clearFieldError(roomInput, roomError);
   clearFieldError(destLat, destLatError);
   clearFieldError(destLng, destLngError);
@@ -139,18 +139,21 @@ function clearAllFieldErrors() {
 }
 
 function showDestinationError(message) {
+  // Muestra un error relacionado con la selección del destino
   if (!destinationError) return;
   destinationError.textContent = message;
   destinationError.classList.remove("hidden");
 }
 
 function hideDestinationError() {
+  // Oculta cualquier aviso de error del destino
   if (!destinationError) return;
   destinationError.textContent = "";
   destinationError.classList.add("hidden");
 }
 
 function setVoiceUiListening(listening) {
+  // Actualiza la interfaz para mostrar el estado de escucha por voz
   if (listening) {
     voiceBtn?.classList.add("listening");
     voiceFabWrapper?.classList.add("voice-active");
@@ -163,6 +166,7 @@ function setVoiceUiListening(listening) {
 }
 
 function stopSpeechIfAny() {
+  // Detiene cualquier síntesis de voz actualmente en reproducción
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   state.isSpeaking = false;
@@ -170,19 +174,20 @@ function stopSpeechIfAny() {
 }
 
 function showRecalculatingOverlay() {
+  // Muestra una superposición indicando que se está recalculando la ruta
   state.isRecalculatingRoute = true;
   recalculatingOverlay?.classList.remove("hidden");
 }
 
 function hideRecalculatingOverlay() {
+  // Oculta la superposición de recálculo y restablece el estado asociado
   state.isRecalculatingRoute = false;
   recalculatingOverlay?.classList.add("hidden");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DESTINOS
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== DESTINOS ====
 
+// Maneja la selección de destinos predefinidos y el toggle para coordenadas manuales
 presetButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     hideDestinationError();
@@ -202,6 +207,7 @@ presetButtons.forEach((btn) => {
   });
 });
 
+// Permite al usuario salir de la vista de acompañante y volver a la configuración inicial
 if (toggleManualBtn) {
   toggleManualBtn.addEventListener("click", () => {
     hideDestinationError();
@@ -232,10 +238,12 @@ if (destLat) destLat.addEventListener("input", () => clearFieldError(destLat, de
 if (destLng) destLng.addEventListener("input", () => clearFieldError(destLng, destLngError));
 
 function getHasSelectedPreset() {
+  // Comprueba si hay un botón de destino predefinido seleccionado
   return [...presetButtons].some(btn => btn.classList.contains("selected"));
 }
 
 function validateAndResolveDestination() {
+  // Valida si hay un destino predefinido o coordenadas manuales válidas
   clearFieldError(destLat, destLatError);
   clearFieldError(destLng, destLngError);
   hideDestinationError();
@@ -291,10 +299,9 @@ function validateAndResolveDestination() {
   return false;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SETUP
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== SETUP ====
 
+// Inicia la navegación: valida datos, muestra pantalla de preview y espera confirmación para arrancar ruta
 startBtn.addEventListener("click", () => {
   clearAllFieldErrors();
 
@@ -354,11 +361,10 @@ routeBackBtn?.addEventListener("click", () => {
   leaveRouteAndGoToSetup();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PREVIEW
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== PREVIEW ====
 
 function showPreviewScreen() {
+  // Muestra la pantalla de preview con detalles del destino y pasos de navegación antes de iniciar la ruta
   setupOverlay.classList.remove("active");
   previewScreen.classList.remove("hidden");
 
@@ -370,6 +376,7 @@ function showPreviewScreen() {
 }
 
 function buildPreviewSteps() {
+  // Construye una lista de pasos informativos para mostrar en la pantalla de preview antes de iniciar la ruta
   state.previewSteps = [
     "La ruta se calcula automáticamente al iniciar.",
     "1 vibración = giro a la izquierda.",
@@ -384,6 +391,7 @@ function buildPreviewSteps() {
 }
 
 function renderPreviewSteps() {
+  // Actualiza la interfaz de preview con la lista de pasos informativos construida previamente
   previewSteps.innerHTML = "";
 
   state.previewSteps.forEach((step, index) => {
@@ -394,11 +402,10 @@ function renderPreviewSteps() {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAUSE / RESUME
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== PAUSE / RESUME ====
 
 function pauseRoute(source = "manual") {
+  // Pausa la navegación y notifica a los clientes conectados
   if (state.isRoutePaused || state.isRecalculatingRoute) return;
 
   state.isRoutePaused = true;
@@ -411,6 +418,7 @@ function pauseRoute(source = "manual") {
 }
 
 function resumeRoute(source = "manual") {
+  // Reanuda la navegación y restablece las lecturas GPS
   if (!state.isRoutePaused || state.isRecalculatingRoute) return;
 
   state.isRoutePaused = false;
@@ -421,6 +429,7 @@ function resumeRoute(source = "manual") {
 }
 
 function leaveRouteAndGoToSetup() {
+  // Limpia el estado de la ruta y vuelve a la pantalla de configuración
   stopGeolocationPolling();
   clearTimeout(state.stopTimer);
   stopSpeechIfAny();
@@ -471,11 +480,10 @@ function leaveRouteAndGoToSetup() {
   timeVal.textContent = "—";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SOCKET
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== SOCKET ====
 
 function initSocket() {
+  // Conecta con el servidor y anuncia el destino/rol del navegador
   if (state.socket?.connected) return;
 
   state.socket = io(window.location.origin, {
@@ -506,6 +514,7 @@ function initSocket() {
 }
 
 function handleCompanionQuickMessage(data) {
+  // Muestra alerta breve y notifica con vibración y síntesis de voz si procede
   const msg = data?.message;
   if (!msg) return;
 
@@ -522,21 +531,22 @@ function handleCompanionQuickMessage(data) {
 }
 
 function setConnStatus(online) {
+  // Actualiza el indicador de estado de conexión en la interfaz
   connDot.className = "dot " + (online ? "dot-on" : "dot-off");
   connLabel.textContent = online ? "Conectado" : "Desconectado";
 }
 
 function emit(event, data) {
+  // Envía un evento al servidor a través del socket, si la conexión está activa
   if (state.socket?.connected) {
     state.socket.emit(event, data);
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GEOLOCATION
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== GEOLOCATION ====
 
 function initGeolocation() {
+  // Inicia lecturas periódicas del GPS y solicita la posición actual
   if (!navigator.geolocation) {
     showAlert("Geolocalización no disponible", false);
     return;
@@ -550,6 +560,7 @@ function initGeolocation() {
 }
 
 function stopGeolocationPolling() {
+  // Detiene las lecturas periódicas del GPS
   if (state.gpsIntervalId) {
     clearInterval(state.gpsIntervalId);
     state.gpsIntervalId = null;
@@ -558,6 +569,7 @@ function stopGeolocationPolling() {
 }
 
 function requestCurrentPosition() {
+  // Solicita la posición actual al API de geolocalización del navegador
   navigator.geolocation.getCurrentPosition(
     onPosition,
     (err) => {
@@ -574,6 +586,7 @@ function requestCurrentPosition() {
 }
 
 async function onPosition(pos) {
+  // Maneja nuevas lecturas GPS y decide si aplicar indicaciones o recalcular ruta
   if (state.isRoutePaused || state.isListening || state.isRecalculatingRoute) return;
 
   const { latitude: lat, longitude: lng } = pos.coords;
@@ -627,6 +640,7 @@ async function onPosition(pos) {
 // Tiempo estimado simple en base a velocidad media caminando.
 // Se actualiza dinámicamente según cambia la distancia al destino.
 function computeRemainingMetrics(straightDistFallback) {
+  // Calcula tiempo y distancia restante usando velocidad media de paseo
   const remainingDistance = straightDistFallback ?? 0;
 
   // Velocidad media caminando: 1.3 m/s ≈ 4.7 km/h
@@ -639,16 +653,16 @@ function computeRemainingMetrics(straightDistFallback) {
 }
 
 function renderRemainingMetrics(distanceMeters, durationSeconds) {
+  // Actualiza la interfaz con distancia y tiempo estimado restantes
   distVal.textContent = formatDist(distanceMeters);
   timeVal.textContent = formatDuration(durationSeconds);
   distLabel.textContent = distanceMeters > 0 ? `a ${formatDist(distanceMeters)}` : "";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTING
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== ROUTING ====
 
 async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
+  // Solicita ruta al servicio OSRM y guarda coordenadas y pasos en el estado
   if (state.isFetchingRoute) return;
   if (!forceRecalc && state.routeCoords.length > 1) return;
 
@@ -697,6 +711,7 @@ async function fetchAndStoreRoute(originLat, originLng, forceRecalc = false) {
 }
 
 async function recalculateRouteFromCurrentPosition(voiceMessage = null) {
+  // Fuerza recalculo de ruta desde la posición actual y actualiza la UI
   if (state.isRoutePaused || state.isRecalculatingRoute || !state.currentPos) return;
 
   stopGeolocationPolling();
@@ -733,6 +748,7 @@ async function recalculateRouteFromCurrentPosition(voiceMessage = null) {
 }
 
 function updateStepIndex(lat, lng) {
+  // Determina el índice del paso de ruta más cercano a la posición actual
   if (!state.routeSteps.length) return;
 
   let bestIndex = state.currentStepIndex;
@@ -756,6 +772,7 @@ function updateStepIndex(lat, lng) {
 }
 
 function getDirectionFromCurrentRouteStep(distToDestination) {
+  // Interpreta el tipo de maniobra del paso actual y devuelve una dirección simple
   if (distToDestination < 15) return "ARRIVED";
   if (!state.routeSteps.length) return "STRAIGHT";
 
@@ -774,6 +791,7 @@ function getDirectionFromCurrentRouteStep(distToDestination) {
 }
 
 function isOffRoute(lat, lng) {
+  // Calcula la mínima distancia desde la posición a la polilínea de la ruta
   if (!state.routeCoords.length) return false;
 
   let minDist = Infinity;
@@ -786,11 +804,10 @@ function isOffRoute(lat, lng) {
   return minDist > 35;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FALLBACK
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== FALLBACK ====
 
 function detectWrongDirectionFallback(currentDist) {
+  // Fallback que detecta si la distancia al destino aumenta y cuenta errores
   if (state.lastDistance == null) {
     state.lastDistance = currentDist;
     return;
@@ -816,6 +833,7 @@ function detectWrongDirectionFallback(currentDist) {
 }
 
 function calcDirectionFallback(lat, lng, dLat, dLng, dist) {
+  // Estima la dirección general hacia el destino usando bearing cuando no hay ruta
   if (dist < 15) return "ARRIVED";
 
   const bearing = calcBearing(lat, lng, dLat, dLng);
@@ -827,11 +845,10 @@ function calcDirectionFallback(lat, lng, dLat, dLng, dist) {
   return "LEFT";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DIRECCIONES
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== DIRECCIONES ====
 
 function applyDirection(dir, force = false) {
+  // Aplica una dirección dada actualizando la UI, vibración y notificando al servidor
   if (state.isRoutePaused || state.isListening) return;
   if (dir === state.lastDirection && !force) return;
 
@@ -859,6 +876,7 @@ function applyDirection(dir, force = false) {
 }
 
 function repeatLastIndicationImmediate() {
+  // Repite la última indicación visual y háptica de forma inmediata
   if (!state.lastDirection || state.isListening) return;
 
   const cfg = DIRECTIONS[state.lastDirection] || DIRECTIONS.STRAIGHT;
@@ -866,11 +884,10 @@ function repeatLastIndicationImmediate() {
   vibrate(cfg.vibration);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STOP
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== STOP ====
 
 function onMovementDetected() {
+  // Detecta paradas continuadas y notifica al servidor cuando el usuario se detiene
   clearTimeout(state.stopTimer);
 
   if (state.isStopped) {
@@ -885,11 +902,10 @@ function onMovementDetected() {
   }, 5000);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHAKE PARA VOZ
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== SHAKE PARA VOZ ====
 
 function initDeviceMotion() {
+  // Añade listener de movimiento para detectar sacudidas y actividad del dispositivo
   if (state.motionListenerAttached) return;
   state.motionListenerAttached = true;
 
@@ -911,6 +927,7 @@ function initDeviceMotion() {
 }
 
 function detectShakeForVoice(magnitude) {
+  // Detecta cambios bruscos en la aceleración para activar reconocimiento de voz
   const now = Date.now();
 
   if (state.lastMotionMagnitude == null) {
@@ -928,11 +945,10 @@ function detectShakeForVoice(magnitude) {
   startVoiceRecognition();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VOZ
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== VOZ ====
 
 function initVoiceRecognition() {
+  // Configura SpeechRecognition para comandos de voz en español
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SR) {
@@ -979,6 +995,7 @@ function initVoiceRecognition() {
 }
 
 function toggleVoiceRecognition() {
+  // Alterna el estado de escucha por voz iniciando o deteniendo el recognizer
   if (!state.recognition) return;
 
   if (state.isListening) {
@@ -992,6 +1009,7 @@ function toggleVoiceRecognition() {
 }
 
 function startVoiceRecognition() {
+  // Inicia la grabación de voz si el recognizer está disponible y no está activo
   if (!state.recognition || state.isListening || state.isRecalculatingRoute) return;
 
   try {
@@ -1000,6 +1018,7 @@ function startVoiceRecognition() {
 }
 
 function normalizeSpeech(text) {
+  // Normaliza texto de voz eliminando acentos y espacios innecesarios
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -1008,11 +1027,13 @@ function normalizeSpeech(text) {
 }
 
 function getRemainingDistanceText() {
+  // Obtiene el texto de distancia restante actual, si está disponible y es válido
   const raw = distVal?.textContent?.trim();
   return raw && raw !== "—" ? raw : null;
 }
 
 async function handleVoiceCommand(text) {
+  // Interpreta comandos de voz básicos y ejecuta acciones como pausar o recalcular
   const normalized = normalizeSpeech(text);
 
   if (!normalized) return;
@@ -1077,11 +1098,10 @@ async function handleVoiceCommand(text) {
   speak("Comando no reconocido.");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// UI / VOZ / VIBRACIÓN
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== UI / VOZ / VIBRACIÓN ====
 
 function vibrate(pattern) {
+  // Envía patrón de vibración al dispositivo si está permitido y activo
   if (!state.hapticEnabled) return;
   if (!navigator.vibrate) return;
   if (!pattern || pattern.length === 0) return;
@@ -1094,6 +1114,7 @@ function vibrate(pattern) {
 }
 
 function speak(text) {
+  // Utiliza síntesis de voz para hablar un mensaje al usuario, si no hay reconocimiento activo
   if (!window.speechSynthesis) return;
 
   stopSpeechIfAny();
@@ -1119,6 +1140,7 @@ function speak(text) {
 }
 
 function setArrow(symbol, label) {
+  // Actualiza el icono y la etiqueta de dirección en la interfaz
   arrowIcon.textContent = symbol;
   dirLabel.textContent = label;
 
@@ -1128,30 +1150,33 @@ function setArrow(symbol, label) {
 }
 
 function showAlert(msg, isError = true) {
+  // Muestra un mensaje de alerta en la interfaz, con estilo de error o información según corresponda
   alertBanner.textContent = msg;
   alertBanner.className = "alert-banner" + (isError ? "" : " hidden");
   alertBanner.classList.remove("hidden");
 }
 
 function hideAlert() {
+  // Oculta el mensaje de alerta
   alertBanner.classList.add("hidden");
 }
 
 function setPill(el, active) {
+  // Activa o desactiva un indicador tipo "pill" en la interfaz según el estado dado
   if (!el) return;
   if (active) el.classList.add("active");
   else el.classList.remove("active");
 }
 
 function wait(ms) {
+  // Devuelve una promesa que se resuelve después de un tiempo dado, útil para pausas en async/await
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GEO MATH
-// ─────────────────────────────────────────────────────────────────────────────
+// ==== GEO MATH ====
 
 function haversine(lat1, lng1, lat2, lng2) {
+  // Calcula distancia en metros entre dos coordenadas geográficas
   const R = 6371000;
   const dLat = deg2rad(lat2 - lat1);
   const dLng = deg2rad(lng2 - lng1);
@@ -1166,6 +1191,7 @@ function haversine(lat1, lng1, lat2, lng2) {
 }
 
 function calcBearing(lat1, lng1, lat2, lng2) {
+  // Calcula el rumbo entre dos puntos en grados desde norte verdadero
   const dLng = deg2rad(lng2 - lng1);
 
   const y = Math.sin(dLng) * Math.cos(deg2rad(lat2));
@@ -1179,14 +1205,17 @@ function calcBearing(lat1, lng1, lat2, lng2) {
 }
 
 function deg2rad(d) {
+  // Convierte grados a radianes
   return d * Math.PI / 180;
 }
 
 function formatDist(m) {
+  // Formatea una distancia en metros a un string legible, usando km si es apropiado
   return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 }
 
 function formatDuration(seconds) {
+  // Formatea una duración en segundos a un string legible con horas y minutos
   const mins = Math.max(1, Math.ceil(seconds / 60));
 
   if (mins < 60) return `${mins} min`;

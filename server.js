@@ -1,3 +1,5 @@
+// Servidor Express y Socket.IO: maneja salas y sincronización en tiempo real
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -15,9 +17,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "home.html"));
 });
 
+// Mapa de salas: cada sala mantiene su estado y participantes
 const rooms = {};
 
 function createInitialState() {
+  // Estado inicial compartido por cada sala (posiciones, ruta, destino, etc.)
   return {
     position: null,
     direction: null,
@@ -29,6 +33,7 @@ function createInitialState() {
 }
 
 function ensureRoom(roomId) {
+  // Asegura que exista una sala con el ID dado, creando una nueva si es necesario
   if (!rooms[roomId]) {
     rooms[roomId] = {
       navigatorId: null,
@@ -39,9 +44,11 @@ function ensureRoom(roomId) {
   return rooms[roomId];
 }
 
+// Maneja nuevas conexiones Socket.IO y registra eventos y handlers por socket
 io.on("connection", (socket) => {
   console.log(`[CONNECT] ${socket.id}`);
 
+  // Evento para unirse como navegador principal y compartir rol con la sala
   socket.on("JOIN_AS_NAVIGATOR", ({ roomId }) => {
     const room = ensureRoom(roomId);
 
@@ -57,6 +64,7 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("NAVIGATOR_ONLINE", { navigatorId: socket.id });
   });
 
+  // Evento para unirse como acompañante y recibir snapshot del estado
   socket.on("JOIN_AS_COMPANION", ({ roomId }) => {
     const room = ensureRoom(roomId);
 
@@ -78,6 +86,7 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Actualiza el destino compartido en el estado de la sala y reemite el evento
   socket.on("DESTINATION_SET", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -87,6 +96,7 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("DESTINATION_SET", data);
   });
 
+  // Actualiza datos de la ruta y opcionalmente el destino, luego reemite
   socket.on("ROUTE_DATA", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -101,6 +111,7 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("ROUTE_DATA", data);
   });
 
+  // Recibe actualizaciones de posición del navegador y las guarda en el estado
   socket.on("POSITION_UPDATE", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -110,6 +121,7 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("POSITION_UPDATE", data);
   });
 
+  // Recibe y propaga la siguiente indicación de dirección
   socket.on("NEXT_DIRECTION", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -119,6 +131,7 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("NEXT_DIRECTION", data);
   });
 
+  // Marca el estado detenido del usuario y notifica a la sala
   socket.on("STOPPED", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -128,6 +141,7 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("STOPPED", data);
   });
 
+  // Marca que el usuario se ha puesto en movimiento y notifica a la sala
   socket.on("MOVING", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -137,12 +151,14 @@ io.on("connection", (socket) => {
     socket.to(roomId).emit("MOVING", data);
   });
 
+  // Reenvía comandos de voz a los demás clientes de la sala
   socket.on("VOICE_COMMAND", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
     socket.to(roomId).emit("VOICE_COMMAND", data);
   });
 
+  // Indica que se detectó una dirección errónea y lo marca temporalmente
   socket.on("WRONG_DIRECTION", (data) => {
     const { roomId } = socket.data;
     if (!roomId) return;
@@ -156,6 +172,7 @@ io.on("connection", (socket) => {
     }, 5000);
   });
 
+  // Maneja mensajes rápidos enviados por un acompañante hacia el navegador
   socket.on("COMPANION_QUICK_MESSAGE", (data) => {
     const { roomId, role } = socket.data;
     if (!roomId || role !== "companion") return;
@@ -173,6 +190,7 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Limpia referencias y notifica a la sala cuando un cliente se desconecta
   socket.on("disconnect", () => {
     const { roomId, role } = socket.data;
     if (!roomId || !rooms[roomId]) {

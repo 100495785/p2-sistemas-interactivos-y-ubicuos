@@ -1,6 +1,4 @@
-/* ═══════════════════════════════════════════════════════
-   HAPTICNAV — companion.js  (Vista acompañante)
-═══════════════════════════════════════════════════════ */
+// Vista acompañante: recibe actualizaciones del navegador principal y muestra el mapa
 
 "use strict";
 
@@ -45,8 +43,10 @@ let userMarker = null;
 let destMarker = null;
 let routeLine = null;
 
-// ── HELPERS ERRORES ────────────────────────────────────────────────────────
+// ==== HELPERS ERRORES ====
+
 function setFieldError(inputEl, errorEl, message) {
+  // Marca un campo como erróneo y muestra el mensaje asociado
   if (inputEl) inputEl.classList.add("input-error");
   if (errorEl) {
     errorEl.textContent = message;
@@ -55,6 +55,7 @@ function setFieldError(inputEl, errorEl, message) {
 }
 
 function clearFieldError(inputEl, errorEl) {
+  // Elimina marca de error y oculta el mensaje del campo
   if (inputEl) inputEl.classList.remove("input-error");
   if (errorEl) {
     errorEl.textContent = "";
@@ -62,7 +63,9 @@ function clearFieldError(inputEl, errorEl) {
   }
 }
 
-// ── SETUP ──────────────────────────────────────────────────────────────────
+// ==== SETUP ====
+
+// Maneja el evento de unirse a una sala, validando el código y estableciendo la conexión
 joinBtn.addEventListener("click", () => {
   const room = roomInput.value.trim().toUpperCase();
 
@@ -90,6 +93,7 @@ if (exitBtn) {
   });
 }
 
+// Maneja los botones de mensajes rápidos, enviando el mensaje asociado al servidor y mostrando una notificación en el log
 quickMsgButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const message = btn.dataset.message;
@@ -104,8 +108,10 @@ quickMsgButtons.forEach((btn) => {
   });
 });
 
-// ── SALIR ───────────────────────────────────────────────────────────────────
+// ==== SALIR ====
+
 function leaveCompanionView() {
+  // Cierra la vista de acompañante y limpia recursos y estado local
   if (socket) {
     socket.disconnect();
     socket = null;
@@ -142,8 +148,10 @@ function leaveCompanionView() {
   setupOverlay.classList.add("active");
 }
 
-// ── SOCKET ─────────────────────────────────────────────────────────────────
+// ==== SOCKET ====
+
 function initSocket(roomId) {
+  // Conecta al servidor usando websocket o polling según disponibilidad
   socket = io(window.location.origin, {
     transports: ["websocket", "polling"]
   });
@@ -230,8 +238,10 @@ function initSocket(roomId) {
   });
 }
 
-// ── MAP ────────────────────────────────────────────────────────────────────
+// ==== MAP ====
+
 function initMap() {
+  // Crea el mapa Leaflet y añade la capa de teselas OpenStreetMap
   if (map) return;
 
   map = L.map("map").setView([40.55166, -4.01202], 13);
@@ -242,6 +252,7 @@ function initMap() {
 }
 
 function updateMap(lat, lng) {
+  // Actualiza marcador del usuario y centra el mapa en la nueva posición
   if (!map) return;
 
   if (!userMarker) {
@@ -254,6 +265,7 @@ function updateMap(lat, lng) {
 }
 
 function updateDestination(data) {
+  // Establece o actualiza el marcador del destino en el mapa
   if (!map) initMap();
   if (typeof data.latitude !== "number" || typeof data.longitude !== "number") return;
 
@@ -266,6 +278,7 @@ function updateDestination(data) {
 }
 
 function updateRoute(routePoints) {
+  // Dibuja o actualiza la polilínea que representa la ruta en el mapa
   if (!map || !Array.isArray(routePoints) || routePoints.length < 2) return;
 
   const latLngs = routePoints
@@ -285,8 +298,10 @@ function updateRoute(routePoints) {
   } catch (_) {}
 }
 
-// ── UPDATERS ────────────────────────────────────────────────────────────────
+// ==== UPDATERS ====
+
 function updatePosition(data) {
+  // Actualiza los valores mostrados de latitud, longitud y hora de actualización
   cLat.textContent = data.latitude?.toFixed(6) ?? "—";
   cLng.textContent = data.longitude?.toFixed(6) ?? "—";
 
@@ -301,6 +316,7 @@ function updatePosition(data) {
 }
 
 function updateDirection(data) {
+  // Muestra la flecha y etiqueta según la dirección recibida
   const cfg = DIRECTIONS[data.direction] || DIRECTIONS.STRAIGHT;
   compArrow.textContent = cfg.arrow;
   compDirLabel.textContent = cfg.label;
@@ -313,21 +329,26 @@ function updateDirection(data) {
 }
 
 function updateStopped(stopped) {
+  // Muestra o oculta el indicador de usuario detenido
   setStateIndicator(stateStopped, stopped ? "state-on-stop" : null);
 }
 
 function setStateIndicator(el, activeClass) {
+  // Ajusta la clase del indicador para mostrar su estado activo o inactivo
   el.className = "state-indicator " + (activeClass ?? "state-off");
 }
 
 function setEmptyRoomVisible(visible) {
+  // Muestra u oculta el banner que indica que la sala está vacía
   if (!emptyRoomBanner) return;
   if (visible) emptyRoomBanner.classList.remove("hidden");
   else emptyRoomBanner.classList.add("hidden");
 }
 
-// ── LOG ─────────────────────────────────────────────────────────────────────
+// ==== LOG ====
+
 function logEvent(msg, cls = "") {
+  // Añade una entrada al log de eventos y mantiene la lista limitada
   const li = document.createElement("li");
   li.className = cls;
   const now = new Date().toLocaleTimeString("es-ES");
@@ -339,8 +360,10 @@ function logEvent(msg, cls = "") {
   }
 }
 
-// ── CONN STATUS ─────────────────────────────────────────────────────────────
+// ==== CONN STATUS ====
+
 function setConnStatus(online) {
+  // Actualiza indicador visual de estado de conexión
   connDot.className = "dot " + (online ? "dot-on" : "dot-off");
   connLabel.textContent = online ? "Conectado" : "Desconectado";
 }
