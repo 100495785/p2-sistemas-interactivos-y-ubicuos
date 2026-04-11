@@ -244,11 +244,11 @@ function gracefulShutdown() {
 
     // Forzar cierre si no termina en 5s
     setTimeout(() => {
-      console.error("Forzando cierre del proceso");
+      console.error("Forzando cierre del proceso\n");
       process.exit(1);
     }, 5000);
   } catch (err) {
-    console.error("Error durante el cierre:", err);
+    console.error("\nError durante el cierre:", err);
     process.exit(1);
   }
 }
